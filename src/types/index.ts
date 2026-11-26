@@ -1,5 +1,7 @@
 export type FitCategory = 'Oversized' | 'Boxy' | 'Regular';
 
+export type StyleCategory = 'Essentials' | 'Minimal' | 'Graphic';
+
 export type ProductSize = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
 
 export interface ProductColor {
@@ -9,37 +11,39 @@ export interface ProductColor {
 }
 
 export interface ProductSpecification {
-  gsm: number;
+  fabricWeight: string;
   composition: string;
   weave: string;
   origin: string;
   careInstructions: string[];
-  sampleNotice: string;
+  specNotice: string;
+}
+
+export interface ProductImages {
+  frontImage: string;
+  backImage?: string;
+  detailImage?: string;
+  lifestyleImage?: string;
 }
 
 export interface Product {
   id: string;
   slug: string;
+  sku: string;
   name: string;
   tagline: string;
   price: number;
   compareAtPrice?: number;
   description: string;
-  story: string;
+  fitNotes: string;
   fit: FitCategory;
-  category: string;
+  category: StyleCategory;
   colors: ProductColor[];
   defaultColor: ProductColor;
   availableSizes: ProductSize[];
   inStock: boolean;
   stockCount: Record<ProductSize, number>;
-  images: {
-    front: string;
-    back: string;
-    detail: string;
-    lifestyle: string;
-    extra?: string[];
-  };
+  images: ProductImages;
   specifications: ProductSpecification;
   modelInfo: {
     height: string;
@@ -48,12 +52,13 @@ export interface Product {
   };
   isNewArrival?: boolean;
   isBestseller?: boolean;
-  dropNumber: string;
+  releaseTag: string;
 }
 
 export interface CartItem {
-  id: string; // unique item id (productId + color + size)
+  id: string; // productId + color.code + size
   productId: string;
+  slug: string;
   name: string;
   price: number;
   color: ProductColor;
@@ -80,10 +85,10 @@ export type PaymentMethod = 'upi' | 'card' | 'netbanking' | 'cod';
 export interface LookbookLook {
   id: string;
   title: string;
-  season: string;
-  location: string;
+  edition: string;
+  setting: string;
   image: string;
-  quote?: string;
+  caption: string;
   taggedProductIds: string[];
   stylingNotes: string;
 }

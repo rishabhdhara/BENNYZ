@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, CheckCircle, AlertCircle, Truck } from 'lucide-react';
+import { MapPin, CheckCircle, AlertCircle } from 'lucide-react';
 import { checkIndianPinCode, PinCodeResult } from '../utils/formatters';
 
 export const DeliveryChecker: React.FC = () => {
@@ -16,15 +16,15 @@ export const DeliveryChecker: React.FC = () => {
       const res = checkIndianPinCode(pinCode);
       setResult(res);
       setLoading(false);
-    }, 350);
+    }, 250);
   };
 
   return (
-    <div className="border border-brand-sand/30 bg-brand-ivory/20 p-4 space-y-3">
-      <div className="flex items-center space-x-2 text-brand-black">
+    <div className="border border-brand-border bg-white p-4 space-y-3">
+      <div className="flex items-center gap-2 text-brand-black">
         <MapPin className="w-4 h-4 text-brand-mocha" />
-        <span className="text-xs font-semibold uppercase tracking-editorial">
-          Estimated Delivery & COD Checker
+        <span className="text-[11px] font-mono uppercase tracking-[0.14em] font-medium">
+          Check Estimated Delivery
         </span>
       </div>
 
@@ -38,47 +38,41 @@ export const DeliveryChecker: React.FC = () => {
             setPinCode(val);
             if (result) setResult(null);
           }}
-          placeholder="ENTER 6-DIGIT PIN CODE (e.g. 560001)"
-          className="flex-1 bg-white border border-brand-sand/50 px-3 py-2 text-xs uppercase tracking-wider placeholder:tracking-normal placeholder:text-brand-secondary/50 focus:outline-none focus:border-brand-black"
+          placeholder="Enter 6-digit PIN code"
+          className="flex-1 bg-brand-off-white border border-brand-border px-3 py-2 text-xs font-mono placeholder:font-sans placeholder:text-brand-secondary-text/60 focus:outline-none focus:border-brand-black"
         />
         <button
           type="submit"
           disabled={loading || pinCode.length !== 6}
-          className="px-5 py-2 bg-brand-black text-brand-ivory text-xs uppercase tracking-luxury font-medium hover:bg-brand-mocha transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          className="px-5 py-2 bg-brand-black text-brand-ivory text-xs uppercase tracking-[0.14em] font-medium hover:bg-brand-mocha transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
         >
-          {loading ? 'Checking...' : 'Check'}
+          {loading ? 'Checking' : 'Check'}
         </button>
       </form>
 
       {result && (
         <div
-          className={`text-xs p-3 border flex items-start space-x-2.5 ${
+          className={`text-xs p-3 border flex items-start gap-2.5 ${
             result.valid
-              ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
-              : 'bg-red-50/80 border-red-200 text-red-900'
+              ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+              : 'bg-red-50/70 border-red-200 text-red-950'
           }`}
         >
           {result.valid ? (
             <>
-              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <div className="space-y-1">
+              <CheckCircle className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
                 <p className="font-medium">
-                  Dispatch in 24 hrs to {result.city}, {result.state}
+                  Serviceable: {result.city}, {result.state}
                 </p>
-                <div className="flex items-center gap-3 text-[11px] text-emerald-800">
-                  <span className="flex items-center gap-1">
-                    <Truck className="w-3 h-3" /> {result.deliveryDays}
-                  </span>
-                  <span>•</span>
-                  <span>Cash on Delivery Available</span>
-                  <span>•</span>
-                  <span>Complimentary on orders &gt; ₹1,999</span>
-                </div>
+                <p className="text-[11px] text-emerald-800">
+                  {result.deliveryDays} • Free shipping on orders over ₹1,999
+                </p>
               </div>
             </>
           ) : (
             <>
-              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <AlertCircle className="w-4 h-4 text-red-700 shrink-0 mt-0.5" />
               <p>{result.message}</p>
             </>
           )}

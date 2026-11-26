@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingBag, Search, User, Menu, X, ArrowRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { BennyzLogo } from './BennyzLogo';
+import { ANNOUNCEMENT_CONFIG, BRAND_CONFIG } from '../data/siteConfig';
 
 interface HeaderProps {
   onOpenSearch: () => void;
@@ -15,230 +17,214 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenAccount }) =
   const location = useLocation();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 30);
-    };
-    window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => setIsScrolled(window.scrollY > 24);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   const navLinks = [
-    { label: 'SHOP ALL', path: '/shop' },
-    { label: 'NEW ARRIVALS', path: '/shop?filter=new' },
-    { label: 'LOOKBOOK', path: '/lookbook' },
-    { label: 'OUR STORY', path: '/story' },
-    { label: 'SUPPORT', path: '/support' },
+    { label: 'Shop', path: '/shop' },
+    { label: 'New Arrivals', path: '/shop?filter=new' },
+    { label: 'Bestsellers', path: '/shop?filter=bestsellers' },
+    { label: 'Lookbook', path: '/lookbook' },
+    { label: 'About', path: '/about' },
   ];
+
+  const isLinkActive = (path: string) => {
+    const current = location.pathname + location.search;
+    if (path === '/shop') {
+      return location.pathname === '/shop' && !location.search;
+    }
+    return current === path;
+  };
 
   return (
     <>
-      {/* Top Announcement Bar */}
-      <div className="bg-brand-black text-brand-ivory text-[11px] tracking-editorial py-2 px-4 text-center font-medium border-b border-brand-black/20 flex items-center justify-center gap-2">
-        <span>THE FIRST DROP / 001 IS LIVE</span>
-        <span className="opacity-40">•</span>
-        <span>COMPLIMENTARY EXPRESS SHIPPING OVER ₹1,999</span>
-        <span className="hidden md:inline opacity-40">•</span>
-        <span className="hidden md:inline text-brand-sand">USE CODE: FIRSTDROP FOR 10% OFF</span>
-      </div>
+      {/* Editable Slim Announcement Bar */}
+      {ANNOUNCEMENT_CONFIG.enabled && (
+        <div className="bg-brand-black text-brand-ivory text-[10px] sm:text-[11px] tracking-[0.12em] uppercase py-2 px-3 sm:px-4 text-center font-medium">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-x-2.5 gap-y-0.5">
+            <span>{ANNOUNCEMENT_CONFIG.message}</span>
+            {ANNOUNCEMENT_CONFIG.ctaText && ANNOUNCEMENT_CONFIG.ctaLink && (
+              <>
+                <span className="text-brand-sand/40 hidden xs:inline">/</span>
+                <Link
+                  to={ANNOUNCEMENT_CONFIG.ctaLink}
+                  className="underline underline-offset-4 text-brand-sand hover:text-brand-ivory transition-colors whitespace-nowrap"
+                >
+                  {ANNOUNCEMENT_CONFIG.ctaText}
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
-      {/* Main Luxury Navigation Bar */}
+      {/* Refined Fashion Navigation Header */}
       <header
-        className={`sticky top-0 z-40 transition-all duration-300 ${
-          isScrolled
-            ? 'bg-brand-off-white/95 backdrop-blur-md shadow-sm border-b border-brand-sand/30 py-3.5'
-            : 'bg-brand-off-white border-b border-brand-sand/20 py-5'
+        className={`sticky top-0 z-40 transition-all duration-300 bg-brand-off-white border-b ${
+          isScrolled ? 'border-brand-black/15 py-3 shadow-sm' : 'border-brand-border py-3.5 sm:py-4'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            {/* Mobile menu trigger */}
-            <div className="flex items-center lg:hidden">
-              <button
-                type="button"
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="p-1.5 -ml-1.5 text-brand-black hover:text-brand-mocha transition-colors"
-                aria-label="Open navigation menu"
-              >
-                <Menu className="w-5 h-5 stroke-[1.5]" />
-              </button>
-              <button
-                type="button"
-                onClick={onOpenSearch}
-                className="p-1.5 ml-2 text-brand-black hover:text-brand-mocha transition-colors"
-                aria-label="Search collection"
-              >
-                <Search className="w-4 h-4 stroke-[1.5]" />
-              </button>
-            </div>
-
-            {/* Desktop Left Navigation Links */}
-            <nav className="hidden lg:flex items-center space-x-8">
-              {navLinks.slice(0, 3).map((link) => (
-                <Link
-                  key={link.label}
-                  to={link.path}
-                  className={`nav-link text-xs tracking-luxury font-medium transition-colors ${
-                    location.pathname + location.search === link.path
-                      ? 'text-brand-black active'
-                      : 'text-brand-black/80 hover:text-brand-black'
-                  }`}
+          <div className="grid grid-cols-3 lg:grid-cols-12 items-center gap-4">
+            {/* Left: Mobile Menu & Search OR Desktop Nav */}
+            <div className="flex items-center gap-2 lg:col-span-5">
+              <div className="flex items-center gap-1 lg:hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="p-1.5 -ml-1.5 text-brand-black hover:text-brand-mocha transition-colors"
+                  aria-label="Open menu"
                 >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
+                  <Menu className="w-5 h-5 stroke-[1.5]" />
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenSearch}
+                  className="p-1.5 text-brand-black hover:text-brand-mocha transition-colors"
+                  aria-label="Search T-shirts"
+                >
+                  <Search className="w-4 h-4 stroke-[1.5]" />
+                </button>
+              </div>
 
-            {/* Centered Brand Wordmark */}
-            <div className="text-center">
-              <Link to="/" className="inline-block group">
-                <span className="font-serif text-2xl sm:text-3xl lg:text-3xl tracking-[0.28em] font-semibold text-brand-black group-hover:text-brand-mocha transition-colors uppercase">
-                  BENNYS
-                </span>
-                <span className="block text-[8px] sm:text-[9px] tracking-[0.35em] text-brand-secondary uppercase mt-0.5 font-light">
-                  Everyday. Elevated.
-                </span>
-              </Link>
-            </div>
-
-            {/* Desktop Right Navigation & Actions */}
-            <div className="flex items-center space-x-6 sm:space-x-7">
-              <nav className="hidden lg:flex items-center space-x-8">
-                {navLinks.slice(3).map((link) => (
+              <nav className="hidden lg:flex items-center gap-6 xl:gap-7" aria-label="Primary navigation">
+                {navLinks.map((link) => (
                   <Link
                     key={link.label}
                     to={link.path}
-                    className={`nav-link text-xs tracking-luxury font-medium transition-colors ${
-                      location.pathname === link.path
+                    className={`nav-link whitespace-nowrap ${
+                      isLinkActive(link.path)
                         ? 'text-brand-black active'
-                        : 'text-brand-black/80 hover:text-brand-black'
+                        : 'text-brand-secondary-text hover:text-brand-black'
                     }`}
                   >
                     {link.label}
                   </Link>
                 ))}
               </nav>
+            </div>
 
-              {/* Action Icons */}
-              <div className="flex items-center space-x-4 sm:space-x-5">
-                <button
-                  type="button"
-                  onClick={onOpenSearch}
-                  className="hidden lg:flex items-center text-brand-black/80 hover:text-brand-black transition-colors"
-                  aria-label="Search"
-                  title="Search products"
-                >
-                  <Search className="w-4 h-4 stroke-[1.5]" />
-                </button>
+            {/* Center: Brand Wordmark */}
+            <div className="flex justify-center lg:col-span-2">
+              <Link to="/" className="inline-flex items-center group" aria-label="BENNYZ Home">
+                <BennyzLogo variant="dark" height={19} className="w-auto transition-opacity group-hover:opacity-75" />
+              </Link>
+            </div>
 
-                <button
-                  type="button"
-                  onClick={onOpenAccount}
-                  className="flex items-center text-brand-black/80 hover:text-brand-black transition-colors"
-                  aria-label="Account"
-                  title="Client Account"
-                >
-                  <User className="w-4 h-4 stroke-[1.5]" />
-                </button>
+            {/* Right: Balanced Utility Actions */}
+            <div className="flex items-center justify-end gap-3.5 sm:gap-5 lg:col-span-5">
+              <button
+                type="button"
+                onClick={onOpenSearch}
+                className="hidden lg:inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-brand-secondary-text hover:text-brand-black transition-colors"
+                aria-label="Search"
+              >
+                <Search className="w-3.5 h-3.5 stroke-[1.6]" />
+                <span>Search</span>
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => setIsCartDrawerOpen(true)}
-                  className="relative p-1 text-brand-black hover:text-brand-mocha transition-colors"
-                  aria-label={`Shopping bag containing ${totalItemsCount} items`}
-                >
-                  <ShoppingBag className="w-5 h-5 stroke-[1.5]" />
-                  {totalItemsCount > 0 && (
-                    <span className="absolute -top-1 -right-1.5 bg-brand-black text-brand-ivory text-[9px] font-semibold w-4 h-4 rounded-full flex items-center justify-center">
-                      {totalItemsCount}
-                    </span>
-                  )}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={onOpenAccount}
+                className="inline-flex items-center gap-1.5 p-1 text-[11px] uppercase tracking-[0.14em] text-brand-secondary-text hover:text-brand-black transition-colors"
+                aria-label="Account"
+                title="Account"
+              >
+                <User className="w-4 h-4 stroke-[1.6] text-brand-black" />
+                <span className="hidden xl:inline">Account</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsCartDrawerOpen(true)}
+                className="inline-flex items-center gap-1.5 p-1 text-brand-black hover:text-brand-mocha transition-colors whitespace-nowrap"
+                aria-label={`Shopping bag with ${totalItemsCount} items`}
+              >
+                <ShoppingBag className="w-4 h-4 stroke-[1.6] shrink-0" />
+                <span className="text-[11px] font-mono font-medium">
+                  <span className="hidden sm:inline">Bag </span>({totalItemsCount})
+                </span>
+              </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Mobile Drawer Navigation */}
+      {/* Mobile Navigation Drawer */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-brand-black/60 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-brand-black/60 transition-opacity"
             onClick={() => setIsMobileMenuOpen(false)}
           />
 
-          {/* Drawer Content */}
-          <div className="fixed inset-y-0 left-0 max-w-xs w-full bg-brand-off-white shadow-2xl z-50 p-6 flex flex-col justify-between overflow-y-auto">
+          <div className="fixed inset-y-0 left-0 max-w-xs w-full bg-brand-off-white shadow-2xl z-50 p-6 flex flex-col justify-between overflow-y-auto border-r border-brand-border">
             <div>
-              {/* Drawer Header */}
-              <div className="flex items-center justify-between pb-6 border-b border-brand-sand/30">
-                <span className="font-serif text-2xl tracking-[0.25em] font-medium text-brand-black">
-                  BENNYS
-                </span>
+              <div className="flex items-center justify-between pb-5 border-b border-brand-border">
+                <BennyzLogo variant="dark" height={17} />
                 <button
                   type="button"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 text-brand-black/70 hover:text-brand-black"
-                  aria-label="Close menu"
+                  className="p-1.5 text-brand-black/70 hover:text-brand-black"
+                  aria-label="Close navigation menu"
                 >
                   <X className="w-5 h-5 stroke-[1.5]" />
                 </button>
               </div>
 
-              {/* Navigation Items */}
-              <div className="py-6 space-y-4">
+              <nav className="py-5 space-y-0.5" aria-label="Mobile navigation">
                 {navLinks.map((link) => (
                   <Link
                     key={link.label}
                     to={link.path}
-                    className="block text-sm tracking-editorial font-medium text-brand-black hover:text-brand-mocha transition-colors py-2"
+                    className="flex items-center justify-between py-3 border-b border-brand-border/60 text-xs uppercase tracking-[0.16em] font-medium text-brand-black hover:text-brand-mocha transition-colors"
                   >
-                    {link.label}
+                    <span>{link.label}</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-brand-secondary-text" />
                   </Link>
                 ))}
-              </div>
+              </nav>
 
-              {/* Shop by Fit Quick Links */}
-              <div className="pt-4 pb-6 border-t border-brand-sand/30">
-                <span className="text-[10px] tracking-editorial font-semibold text-brand-secondary uppercase block mb-3">
-                  Shop by Silhouette
+              <div className="pt-4 space-y-2.5">
+                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-secondary-text block">
+                  Shop by Fit
                 </span>
-                <div className="space-y-2 text-xs text-brand-black/80 font-normal">
-                  <Link to="/shop?fit=Oversized" className="block hover:text-brand-black py-1">
-                    • The Oversized Cut
+                <div className="space-y-1.5 text-xs text-brand-black">
+                  <Link to="/shop?fit=Oversized" className="block py-1 hover:text-brand-mocha">
+                    Oversized T-Shirts
                   </Link>
-                  <Link to="/shop?fit=Boxy" className="block hover:text-brand-black py-1">
-                    • The Boxy Silhouette
+                  <Link to="/shop?fit=Boxy" className="block py-1 hover:text-brand-mocha">
+                    Boxy-Fit T-Shirts
                   </Link>
-                  <Link to="/shop?fit=Regular" className="block hover:text-brand-black py-1">
-                    • The Classic Regular Fit
+                  <Link to="/shop?fit=Regular" className="block py-1 hover:text-brand-mocha">
+                    Regular-Fit T-Shirts
                   </Link>
                 </div>
               </div>
             </div>
 
-            {/* Drawer Bottom Info */}
-            <div className="pt-6 border-t border-brand-sand/30 space-y-4">
+            <div className="pt-6 border-t border-brand-border space-y-4">
               <button
+                type="button"
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   onOpenSearch();
                 }}
-                className="w-full flex items-center justify-between py-2 text-xs tracking-editorial text-brand-black/80 border-b border-brand-sand/20"
+                className="w-full flex items-center justify-between py-2.5 px-3 bg-white border border-brand-border text-xs uppercase tracking-[0.14em] text-brand-black"
               >
-                <span>SEARCH STORE</span>
+                <span>Search T-Shirts</span>
                 <Search className="w-4 h-4 stroke-[1.5]" />
               </button>
 
-              <div className="text-[11px] text-brand-secondary space-y-1">
-                <p>Currency: INR (₹) / Delivery Across India</p>
-                <p>Support: care@bennys.in</p>
+              <div className="text-[11px] text-brand-secondary-text space-y-1">
+                <p className="font-medium text-brand-black">{BRAND_CONFIG.tagline}</p>
+                <p>{BRAND_CONFIG.supportEmail}</p>
               </div>
             </div>
           </div>

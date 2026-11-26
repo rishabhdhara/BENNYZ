@@ -11,7 +11,7 @@ interface SizeChartModalProps {
 export const SizeChartModal: React.FC<SizeChartModalProps> = ({
   isOpen,
   onClose,
-  activeFit = 'Boxy'
+  activeFit = 'Boxy',
 }) => {
   const [unit, setUnit] = useState<'inches' | 'cm'>('inches');
 
@@ -19,84 +19,80 @@ export const SizeChartModal: React.FC<SizeChartModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-brand-black/70 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-brand-black/65 transition-opacity"
         onClick={onClose}
       />
 
-      {/* Modal Dialog */}
-      <div className="relative bg-brand-off-white w-full max-w-2xl shadow-2xl z-10 border border-brand-sand/40 max-h-[90vh] overflow-y-auto p-6 sm:p-8">
-        <div className="flex justify-between items-start pb-4 border-b border-brand-sand/30">
+      <div className="relative bg-brand-off-white w-full max-w-2xl shadow-2xl z-10 border border-brand-border max-h-[90vh] overflow-y-auto p-6 sm:p-8">
+        <div className="flex justify-between items-start pb-4 border-b border-brand-border">
           <div>
-            <div className="flex items-center space-x-2 text-brand-mocha mb-1">
+            <div className="flex items-center gap-2 text-brand-mocha mb-1">
               <Ruler className="w-4 h-4" />
-              <span className="text-[10px] tracking-editorial uppercase font-medium">
-                PRECISION SIZING MATRIX
+              <span className="text-[10px] font-mono tracking-[0.18em] uppercase font-medium">
+                BENNYZ Size Guide
               </span>
             </div>
-            <h2 className="font-serif text-2xl font-medium text-brand-black">
-              BENNYS Tailoring & Size Guide
+            <h2 className="font-display text-2xl font-semibold text-brand-black">
+              Garment Measurements
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 text-brand-secondary hover:text-brand-black transition-colors"
+            className="p-1 text-brand-secondary-text hover:text-brand-black transition-colors"
             aria-label="Close size guide"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Unit Toggle & Fit Explanation */}
         <div className="my-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="text-xs text-brand-secondary">
-            <span className="font-medium text-brand-black">Current Product Cut:</span>{' '}
-            <span className="uppercase text-brand-mocha font-semibold">{activeFit} Fit</span>
+          <div className="text-xs text-brand-secondary-text">
+            <span className="font-medium text-brand-black">Active Fit:</span>{' '}
+            <span className="uppercase font-mono text-brand-mocha font-medium">{activeFit} Fit</span>
           </div>
 
-          <div className="inline-flex border border-brand-sand/50 bg-brand-ivory/40 p-0.5 rounded-none self-start sm:self-auto">
+          <div className="inline-flex border border-brand-border bg-white p-0.5 self-start sm:self-auto">
             <button
               type="button"
               onClick={() => setUnit('inches')}
-              className={`px-3 py-1 text-xs tracking-luxury uppercase font-medium transition-colors ${
+              className={`px-3 py-1 text-xs font-mono uppercase transition-colors ${
                 unit === 'inches'
                   ? 'bg-brand-black text-brand-ivory'
                   : 'text-brand-black/70 hover:text-brand-black'
               }`}
             >
-              Inches (in)
+              Inches
             </button>
             <button
               type="button"
               onClick={() => setUnit('cm')}
-              className={`px-3 py-1 text-xs tracking-luxury uppercase font-medium transition-colors ${
+              className={`px-3 py-1 text-xs font-mono uppercase transition-colors ${
                 unit === 'cm'
                   ? 'bg-brand-black text-brand-ivory'
                   : 'text-brand-black/70 hover:text-brand-black'
               }`}
             >
-              Centimeters (cm)
+              CM
             </button>
           </div>
         </div>
 
-        {/* Measurement Table */}
-        <div className="overflow-x-auto border border-brand-sand/30 my-4 bg-white">
+        <div className="overflow-x-auto border border-brand-border my-4 bg-white">
           <table className="w-full text-left text-xs">
-            <thead className="bg-brand-ivory text-brand-black uppercase tracking-editorial text-[10px] border-b border-brand-sand/30">
+            <thead className="bg-brand-ivory text-brand-black uppercase font-mono text-[10px] border-b border-brand-border">
               <tr>
                 <th className="py-3 px-4 font-semibold">Size</th>
-                <th className="py-3 px-4 font-semibold">Chest Circumference</th>
-                <th className="py-3 px-4 font-semibold">Garment Length</th>
-                <th className="py-3 px-4 font-semibold">Shoulder Width</th>
+                <th className="py-3 px-4 font-semibold">Chest</th>
+                <th className="py-3 px-4 font-semibold">Length</th>
+                <th className="py-3 px-4 font-semibold">Shoulder</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-brand-sand/20 font-light text-brand-black">
+            <tbody className="divide-y divide-brand-border/60 text-brand-black">
               {SIZE_CHART_DATA.map((row) => (
-                <tr key={row.size} className="hover:bg-brand-off-white/80 transition-colors">
-                  <td className="py-2.5 px-4 font-semibold text-brand-black">{row.size}</td>
+                <tr key={row.size} className="hover:bg-brand-off-white transition-colors">
+                  <td className="py-2.5 px-4 font-mono font-semibold">{row.size}</td>
                   <td className="py-2.5 px-4">
                     {unit === 'inches' ? `${row.chestInches}"` : `${row.chestCm} cm`}
                   </td>
@@ -106,7 +102,7 @@ export const SizeChartModal: React.FC<SizeChartModalProps> = ({
                   <td className="py-2.5 px-4">
                     {unit === 'inches'
                       ? `${row.shoulderInches}"`
-                      : `${Math.round(parseFloat(row.shoulderInches) * 2.54)} cm`}
+                      : `${(parseFloat(row.shoulderInches) * 2.54).toFixed(1)} cm`}
                   </td>
                 </tr>
               ))}
@@ -114,42 +110,44 @@ export const SizeChartModal: React.FC<SizeChartModalProps> = ({
           </table>
         </div>
 
-        {/* Fit Profiles Explanation */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-brand-sand/30 text-xs text-brand-secondary">
-          <div className="p-3 bg-brand-ivory/30 border border-brand-sand/20">
-            <h4 className="font-semibold text-brand-black text-[11px] uppercase tracking-editorial mb-1">
+        <p className="text-[11px] text-brand-secondary-text bg-brand-ivory/40 border border-brand-border p-3 leading-relaxed">
+          Placeholder sizing matrix shown above. Replace measurements in <code className="font-mono text-brand-black">src/data/products.ts</code> with your final graded spec sheet before launch.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 mt-4 border-t border-brand-border text-xs text-brand-secondary-text">
+          <div className="p-3 bg-white border border-brand-border">
+            <h4 className="font-semibold text-brand-black text-[11px] uppercase tracking-[0.12em] mb-1">
               Oversized Fit
             </h4>
             <p className="text-[11px] leading-relaxed">
-              Extended dropped shoulders and generous chest volume. Take your normal size for the designed drape.
+              Dropped shoulders and generous chest room for a relaxed drape.
             </p>
           </div>
-          <div className="p-3 bg-brand-ivory/30 border border-brand-sand/20">
-            <h4 className="font-semibold text-brand-black text-[11px] uppercase tracking-editorial mb-1">
+          <div className="p-3 bg-white border border-brand-border">
+            <h4 className="font-semibold text-brand-black text-[11px] uppercase tracking-[0.12em] mb-1">
               Boxy Fit
             </h4>
             <p className="text-[11px] leading-relaxed">
-              Wide torso with a subtly cropped body length. Eliminates fabric pooling around the waist.
+              Wide chest proportion with a slightly shorter torso that sits cleanly at the waist.
             </p>
           </div>
-          <div className="p-3 bg-brand-ivory/30 border border-brand-sand/20">
-            <h4 className="font-semibold text-brand-black text-[11px] uppercase tracking-editorial mb-1">
+          <div className="p-3 bg-white border border-brand-border">
+            <h4 className="font-semibold text-brand-black text-[11px] uppercase tracking-[0.12em] mb-1">
               Regular Fit
             </h4>
             <p className="text-[11px] leading-relaxed">
-              Clean tailored silhouette with standard shoulder placement. Perfect for layering under overshirts and jackets.
+              Clean shoulder alignment and balanced everyday profile.
             </p>
           </div>
         </div>
 
-        <div className="mt-6 pt-4 border-t border-brand-sand/30 flex justify-between items-center text-[11px] text-brand-secondary">
-          <span>Need personalized fit assistance? Contact concierge at care@bennys.in</span>
+        <div className="mt-6 pt-4 border-t border-brand-border flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 bg-brand-black text-brand-ivory uppercase tracking-luxury text-xs font-medium hover:bg-brand-mocha transition-colors"
+            className="px-5 py-2 bg-brand-black text-brand-ivory uppercase tracking-[0.14em] text-xs font-medium hover:bg-brand-mocha transition-colors"
           >
-            Close Guide
+            Close
           </button>
         </div>
       </div>

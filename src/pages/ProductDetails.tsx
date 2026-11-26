@@ -1,60 +1,91 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { PRODUCTS } from '../data/products';
-import { Product, ProductColor, ProductSize } from '../types';
+import { ProductColor, ProductSize } from '../types';
 import { formatPrice } from '../utils/formatters';
 import { useCart } from '../context/CartContext';
 import { SizeChartModal } from '../components/SizeChartModal';
 import { DeliveryChecker } from '../components/DeliveryChecker';
 import { ProductCard } from '../components/ProductCard';
-import {
-  Ruler,
-  ShieldCheck,
-  Truck,
-  RotateCcw,
-  Check,
-  ChevronRight,
-  Info,
-  ArrowRight,
-  ChevronDown
-} from 'lucide-react';
+import { BennyzLogo } from '../components/BennyzLogo';
+import { Ruler, ChevronRight, ChevronLeft, ChevronDown, Info } from 'lucide-react';
 
 export const ProductDetails: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
-  const product = PRODUCTS.find((p) => p.slug === slug) || PRODUCTS[0];
+  const product = PRODUCTS.find((p) => p.slug === slug || p.id === slug) || PRODUCTS[0];
 
-  // Component States
+  const imagesList = useMemo(() => {
+    const items: { key: string; label: string; src: string }[] = [
+      { key: 'front', label: 'Front View', src: product.images.frontImage },
+    ];
+    if (product.images.backImage && product.images.backImage !== product.images.frontImage) {
+      items.push({ key: 'back', label: 'Back View', src: product.images.backImage });
+    }
+    if (product.images.detailImage) {
+      items.push({ key: 'detail', label: 'Fabric & Detail', src: product.images.detailImage });
+    }
+    if (product.images.lifestyleImage) {
+      items.push({ key: 'lifestyle', label: 'Lifestyle', src: product.images.lifestyleImage });
+    }
+    return items;
+  }, [product]);
+
   const [selectedColor, setSelectedColor] = useState<ProductColor>(product.defaultColor);
   const [selectedSize, setSelectedSize] = useState<ProductSize | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
-  const [activeImageKey, setActiveImageKey] = useState<'front' | 'back' | 'detail' | 'lifestyle'>('front');
+  const [activeIndex, setActiveIndex] = useState<number>(0);
   const [isSizeChartOpen, setIsSizeChartOpen] = useState<boolean>(false);
   const [sizeError, setSizeError] = useState<string | null>(null);
-  const [activeAccordion, setActiveAccordion] = useState<string>('details');
+  const [activeAccordion, setActiveAccordion] = useState<string>('fit');
 
-  // Reset states when slug changes
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
   useEffect(() => {
     setSelectedColor(product.defaultColor);
     setSelectedSize(null);
     setQuantity(1);
-    setActiveImageKey('front');
+    setActiveIndex(0);
     setSizeError(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [slug, product]);
 
-  const imagesList = [
-    { key: 'front', label: 'Front Architecture', src: product.images.front },
-    { key: 'back', label: 'Back & Silhouette', src: product.images.back },
-    { key: 'detail', label: 'Fabric & Seam Detail', src: product.images.detail },
-    { key: 'lifestyle', label: 'On-Model Styling', src: product.images.lifestyle },
-  ];
+  const activeImage = imagesList[activeIndex] || imagesList[0];
+
+  const handlePrevImage = () => {
+    setActiveIndex((prev) => (prev - 1 + imagesList.length) % imagesList.length);
+  };
+
+  const handleNextImage = () => {
+    setActiveIndex((prev) => (prev + 1) % imagesList.length);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current || imagesList.length <= 1) return;
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+
+    if (Math.abs(deltaX) > 36 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      if (deltaX < 0) {
+        handleNextImage();
+      } else {
+        handlePrevImage();
+      }
+    }
+  };
 
   const handleAddToCart = () => {
     if (!selectedSize) {
-      setSizeError('Please select a size before adding to your shopping bag.');
+      setSizeError('Please select a size before adding to your bag.');
       return;
     }
     setSizeError(null);
@@ -63,7 +94,7 @@ export const ProductDetails: React.FC = () => {
 
   const handleBuyNow = () => {
     if (!selectedSize) {
-      setSizeError('Please select a size to proceed with Buy Now.');
+      setSizeError('Please select a size to continue.');
       return;
     }
     setSizeError(null);
@@ -74,169 +105,198 @@ export const ProductDetails: React.FC = () => {
   };
 
   const currentStock = selectedSize ? product.stockCount[selectedSize] || 0 : null;
-
-  // Related products from same category or different fit
   const relatedProducts = PRODUCTS.filter((p) => p.id !== product.id).slice(0, 4);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-16">
-      {/* Breadcrumb Navigation */}
-      <nav className="flex items-center space-x-2 text-xs text-brand-secondary font-light">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-xs text-brand-secondary-text" aria-label="Breadcrumb">
         <Link to="/" className="hover:text-brand-black transition-colors">Home</Link>
-        <ChevronRight className="w-3 h-3 text-brand-sand" />
-        <Link to="/shop" className="hover:text-brand-black transition-colors">Collection</Link>
-        <ChevronRight className="w-3 h-3 text-brand-sand" />
+        <ChevronRight className="w-3 h-3" />
+        <Link to="/shop" className="hover:text-brand-black transition-colors">Shop</Link>
+        <ChevronRight className="w-3 h-3" />
         <Link to={`/shop?fit=${product.fit}`} className="hover:text-brand-black transition-colors">{product.fit} Fit</Link>
-        <ChevronRight className="w-3 h-3 text-brand-sand" />
+        <ChevronRight className="w-3 h-3" />
         <span className="text-brand-black font-medium">{product.name}</span>
       </nav>
 
-      {/* Main Product Showcase Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-        {/* Left: Product Image Gallery */}
+      {/* Main Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+        {/* Left: Product Gallery with Swipe & Thumbnail Switching */}
         <div className="lg:col-span-7 space-y-4">
-          {/* Main Selected Image */}
-          <div className="relative aspect-[4/5] bg-[#EAE5DA] overflow-hidden border border-brand-sand/30 shadow-sm">
-            <img
-              src={product.images[activeImageKey] || product.images.front}
-              alt={`${product.name} - ${activeImageKey}`}
-              className="w-full h-full object-cover object-center transition-all duration-500 ease-out"
-            />
-            <div className="absolute top-4 left-4 flex gap-2">
-              <span className="bg-brand-black text-brand-ivory text-[10px] tracking-luxury uppercase px-2.5 py-1 font-medium">
-                {product.dropNumber}
+          <div
+            className="relative aspect-[3/4] bg-brand-ivory overflow-hidden border border-brand-border select-none"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            {imagesList.map((img, idx) => (
+              <img
+                key={img.key}
+                src={img.src}
+                alt={`${product.name} — ${img.label}`}
+                className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-400 ease-in-out ${
+                  idx === activeIndex ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+              />
+            ))}
+
+            <div className="absolute top-4 left-4 flex gap-2 z-10">
+              <span className="bg-brand-black text-brand-ivory text-[10px] font-mono tracking-[0.16em] uppercase px-2.5 py-1">
+                {product.fit} Fit
               </span>
-              <span className="bg-white/85 backdrop-blur-xs text-brand-black text-[10px] tracking-editorial uppercase px-2.5 py-1 border border-brand-sand/30 font-medium">
-                {product.fit} SILHOUETTE
+              <span className="bg-white/95 text-brand-black text-[10px] font-mono tracking-[0.16em] uppercase px-2.5 py-1 border border-brand-border">
+                {product.category}
               </span>
             </div>
-            <div className="absolute bottom-4 left-4 bg-brand-black/60 backdrop-blur-xs text-brand-ivory text-[10px] tracking-editorial px-2.5 py-1">
-              VIEW: {activeImageKey.toUpperCase()}
+
+            {imagesList.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={handlePrevImage}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-brand-off-white/90 border border-brand-border flex items-center justify-center text-brand-black hover:bg-brand-black hover:text-brand-ivory transition-colors"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextImage}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-brand-off-white/90 border border-brand-border flex items-center justify-center text-brand-black hover:bg-brand-black hover:text-brand-ivory transition-colors"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </>
+            )}
+
+            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between z-10">
+              <span className="bg-brand-black/85 text-brand-ivory text-[10px] font-mono uppercase tracking-[0.14em] px-2.5 py-1">
+                {activeImage.label}
+              </span>
+              {imagesList.length > 1 && (
+                <div className="flex items-center gap-1.5 bg-brand-off-white/90 border border-brand-border px-2 py-1">
+                  {imagesList.map((img, idx) => (
+                    <button
+                      key={img.key}
+                      type="button"
+                      onClick={() => setActiveIndex(idx)}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        idx === activeIndex ? 'bg-brand-black' : 'bg-brand-sand/70'
+                      }`}
+                      aria-label={`View ${img.label}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Thumbnails Row */}
           <div className="grid grid-cols-4 gap-3">
-            {imagesList.map((img) => (
+            {imagesList.map((img, idx) => (
               <button
                 key={img.key}
                 type="button"
-                onClick={() => setActiveImageKey(img.key as any)}
-                className={`relative aspect-[3/4] overflow-hidden border transition-all ${
-                  activeImageKey === img.key
+                onClick={() => setActiveIndex(idx)}
+                className={`text-left border transition-all bg-white ${
+                  activeIndex === idx
                     ? 'border-brand-black ring-1 ring-brand-black'
-                    : 'border-brand-sand/40 opacity-70 hover:opacity-100'
+                    : 'border-brand-border opacity-75 hover:opacity-100'
                 }`}
               >
-                <img
-                  src={img.src}
-                  alt={img.label}
-                  className="w-full h-full object-cover object-center"
-                />
-                <span className="sr-only">{img.label}</span>
+                <div className="aspect-[3/4] overflow-hidden">
+                  <img
+                    src={img.src}
+                    alt={`${product.name} ${img.label}`}
+                    className="w-full h-full object-cover object-center"
+                  />
+                </div>
+                <span className="block px-2 py-1.5 text-[10px] font-mono uppercase tracking-[0.1em] text-brand-black truncate">
+                  {img.label}
+                </span>
               </button>
             ))}
           </div>
-
-          {/* Model Fit Metadata Badge */}
-          <div className="p-4 bg-brand-ivory/30 border border-brand-sand/30 flex items-center justify-between text-xs text-brand-secondary">
-            <div className="flex items-center space-x-2">
-              <Info className="w-4 h-4 text-brand-mocha" />
-              <span>
-                Model is <strong className="text-brand-black">{product.modelInfo.height}</strong> with a{' '}
-                <strong className="text-brand-black">{product.modelInfo.chest}</strong> chest, wearing size{' '}
-                <strong className="text-brand-black">{product.modelInfo.sizeWorn}</strong>.
-              </span>
-            </div>
-          </div>
         </div>
 
-        {/* Right: Product Purchase Details & Specs */}
+        {/* Right: Purchase & Garment Details */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Header & Pricing */}
-          <div className="space-y-2 border-b border-brand-sand/30 pb-5">
-            <span className="text-[10px] tracking-ultra uppercase text-brand-mocha font-semibold">
-              {product.category} COLLECTION • {product.specifications.gsm} GSM
-            </span>
-            <h1 className="font-serif text-3xl sm:text-4xl text-brand-black font-normal">
+          <div className="space-y-2 border-b border-brand-border pb-5">
+            <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.16em] text-brand-mocha">
+              <span>{product.category} / {product.fit} Fit</span>
+              <span>{product.sku}</span>
+            </div>
+            <h1 className="font-display text-3xl sm:text-4xl font-semibold text-brand-black">
               {product.name}
             </h1>
-            <p className="text-xs text-brand-secondary font-light">
+            <p className="text-xs sm:text-sm text-brand-secondary-text">
               {product.tagline}
             </p>
-
-            <div className="flex items-baseline space-x-3 pt-2">
-              <span className="text-2xl font-semibold text-brand-black font-sans">
+            <div className="flex items-baseline gap-3 pt-2">
+              <span className="text-2xl font-semibold text-brand-black">
                 {formatPrice(product.price)}
               </span>
-              {product.compareAtPrice && product.compareAtPrice > product.price && (
-                <span className="text-sm text-brand-secondary/60 line-through font-light">
-                  {formatPrice(product.compareAtPrice)}
-                </span>
-              )}
-              <span className="text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 border border-emerald-200">
-                Inclusive of all taxes
+              <span className="text-[11px] text-brand-secondary-text">
+                Inclusive of taxes
               </span>
             </div>
           </div>
 
-          {/* Color Selection */}
+          {/* Colour Selection */}
           <div className="space-y-2.5">
             <div className="flex justify-between items-center text-xs">
-              <span className="font-semibold uppercase tracking-editorial text-brand-secondary">
-                Select Shade:
+              <span className="font-mono uppercase tracking-[0.14em] text-brand-secondary-text">
+                Colour
               </span>
               <span className="font-medium text-brand-black">{selectedColor.name}</span>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-3">
               {product.colors.map((c) => (
                 <button
                   key={c.code}
                   type="button"
                   onClick={() => setSelectedColor(c)}
-                  className={`w-7 h-7 rounded-full transition-all relative ${
+                  className={`w-7 h-7 rounded-full transition-all ${
                     selectedColor.code === c.code
-                      ? 'ring-2 ring-offset-2 ring-brand-black scale-110'
-                      : 'hover:scale-105 opacity-80 hover:opacity-100'
+                      ? 'ring-2 ring-offset-2 ring-brand-black scale-105'
+                      : 'opacity-80 hover:opacity-100'
                   }`}
                   style={{
                     backgroundColor: c.hex,
-                    border: c.hex === '#FFFFFF' ? '1px solid #c4c4c4' : 'none'
+                    border:
+                      c.hex.toUpperCase() === '#F9F8F5' || c.hex.toUpperCase() === '#FFFFFF'
+                        ? '1px solid #C8C1B4'
+                        : 'none',
                   }}
                   title={c.name}
                   aria-label={`Select color ${c.name}`}
-                >
-                  {selectedColor.code === c.code && (
-                    <span className="sr-only">Selected</span>
-                  )}
-                </button>
+                />
               ))}
             </div>
           </div>
 
-          {/* Size Selection (MANDATORY) */}
+          {/* Size Selection */}
           <div className="space-y-2.5">
             <div className="flex justify-between items-center text-xs">
-              <div className="flex items-center space-x-1">
-                <span className="font-semibold uppercase tracking-editorial text-brand-secondary">
-                  Select Size:
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono uppercase tracking-[0.14em] text-brand-secondary-text">
+                  Size
                 </span>
-                <span className="text-red-500 font-bold">*</span>
                 {selectedSize && (
-                  <span className="font-semibold text-brand-black ml-1">({selectedSize})</span>
+                  <span className="font-semibold text-brand-black">({selectedSize})</span>
                 )}
               </div>
               <button
                 type="button"
                 onClick={() => setIsSizeChartOpen(true)}
-                className="inline-flex items-center space-x-1 text-xs text-brand-mocha hover:underline"
+                className="inline-flex items-center gap-1.5 text-xs text-brand-mocha hover:underline font-medium"
               >
                 <Ruler className="w-3.5 h-3.5" />
-                <span>Size Guide & Measurements</span>
+                <span>Size Guide</span>
               </button>
             </div>
 
-            {/* Sizes Grid */}
             <div className="grid grid-cols-6 gap-2">
               {product.availableSizes.map((size) => {
                 const stock = product.stockCount[size] || 0;
@@ -252,12 +312,12 @@ export const ProductDetails: React.FC = () => {
                       setSelectedSize(size);
                       setSizeError(null);
                     }}
-                    className={`py-3 text-xs font-semibold border transition-all text-center ${
+                    className={`py-3 text-xs font-mono font-medium border transition-colors ${
                       isSelected
-                        ? 'bg-brand-black text-brand-ivory border-brand-black shadow-sm'
+                        ? 'bg-brand-black text-brand-ivory border-brand-black'
                         : isOutOfStock
-                        ? 'bg-brand-sand/10 border-brand-sand/20 text-brand-secondary/40 cursor-not-allowed line-through'
-                        : 'bg-white border-brand-sand/40 text-brand-black hover:border-brand-black'
+                        ? 'bg-brand-ivory/40 border-brand-border/50 text-brand-secondary-text/40 cursor-not-allowed line-through'
+                        : 'bg-white border-brand-border text-brand-black hover:border-brand-black'
                     }`}
                   >
                     {size}
@@ -266,42 +326,34 @@ export const ProductDetails: React.FC = () => {
               })}
             </div>
 
-            {/* Error or Stock feedback */}
             {sizeError ? (
-              <p className="text-xs text-red-600 font-medium animate-pulse">{sizeError}</p>
+              <p className="text-xs text-red-700 font-medium">{sizeError}</p>
             ) : selectedSize ? (
-              <p className="text-[11px] text-emerald-800">
-                {currentStock && currentStock <= 5 ? (
-                  <span className="text-amber-800 font-medium">
-                    ⚡ Only {currentStock} units remaining in size {selectedSize} for Drop 001.
-                  </span>
-                ) : (
-                  <span>✓ Size {selectedSize} is in stock. Ready to dispatch in 24 hours.</span>
-                )}
+              <p className="text-[11px] text-brand-secondary-text">
+                {currentStock && currentStock <= 5
+                  ? `Low stock in ${selectedSize} (${currentStock} remaining).`
+                  : `Size ${selectedSize} selected and available.`}
               </p>
             ) : (
-              <p className="text-[11px] text-brand-secondary/70 italic">
-                * Please select your size to activate checkout.
+              <p className="text-[11px] text-brand-secondary-text">
+                Select a size to add this T-shirt to your bag.
               </p>
             )}
           </div>
 
-          {/* Quantity Selector & Action Buttons */}
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center space-x-3">
-              {/* Qty Counter */}
-              <div className="flex items-center border border-brand-sand/50 bg-white">
+          {/* Quantity & Actions */}
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center border border-brand-border bg-white">
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="w-10 h-12 flex items-center justify-center text-sm text-brand-black hover:bg-brand-sand/20 transition-colors"
+                  className="w-10 h-12 flex items-center justify-center text-sm text-brand-black hover:bg-brand-ivory"
                   aria-label="Decrease quantity"
                 >
                   -
                 </button>
-                <span className="w-10 text-center text-xs font-semibold text-brand-black">
-                  {quantity}
-                </span>
+                <span className="w-10 text-center text-xs font-mono font-medium">{quantity}</span>
                 <button
                   type="button"
                   onClick={() =>
@@ -312,149 +364,144 @@ export const ProductDetails: React.FC = () => {
                       return q + 1;
                     })
                   }
-                  className="w-10 h-12 flex items-center justify-center text-sm text-brand-black hover:bg-brand-sand/20 transition-colors"
+                  className="w-10 h-12 flex items-center justify-center text-sm text-brand-black hover:bg-brand-ivory"
                   aria-label="Increase quantity"
                 >
                   +
                 </button>
               </div>
 
-              {/* Add to Bag CTA */}
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="flex-1 py-3.5 px-6 bg-brand-black text-brand-ivory text-xs tracking-luxury uppercase font-medium hover:bg-brand-mocha transition-all duration-300 shadow-sm"
+                className="flex-1 py-3.5 px-6 bg-brand-black text-brand-ivory text-xs tracking-[0.16em] uppercase font-semibold hover:bg-brand-mocha transition-colors"
               >
-                ADD TO BAG
+                Add to Cart
               </button>
             </div>
 
-            {/* Buy Now CTA */}
             <button
               type="button"
               onClick={handleBuyNow}
-              className="w-full py-3.5 px-6 border border-brand-black text-brand-black hover:bg-brand-ivory transition-colors text-xs tracking-luxury uppercase font-semibold text-center"
+              className="w-full py-3.5 px-6 border border-brand-black text-brand-black hover:bg-brand-ivory transition-colors text-xs tracking-[0.16em] uppercase font-semibold"
             >
-              BUY NOW WITH 1-CLICK CHECKOUT
+              Proceed to Demo Checkout
             </button>
           </div>
 
-          {/* Delivery PIN Code Checker */}
-          <div className="pt-2">
-            <DeliveryChecker />
+          <div className="pt-2 space-y-2 text-xs sm:text-sm text-brand-secondary-text leading-relaxed">
+            <p>{product.description}</p>
           </div>
 
-          {/* Sample Product Data Notice (as instructed: clearly labelled sample data) */}
-          <div className="p-3 bg-brand-sand/15 border border-brand-sand/40 text-[11px] text-brand-secondary space-y-1">
-            <div className="flex items-center space-x-1.5 font-semibold text-brand-black uppercase tracking-wider text-[10px]">
-              <Info className="w-3.5 h-3.5 text-brand-mocha" />
-              <span>PROTOTYPE DATA SPECIFICATION</span>
+          {/* Woven Neck Label Detail */}
+          <div className="p-4 bg-brand-ivory/50 border border-brand-border flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-brand-secondary-text block">
+                Neck Label Detail
+              </span>
+              <p className="text-xs text-brand-black">
+                {product.fit} Fit • {selectedSize || 'Select Size'}
+              </p>
             </div>
-            <p className="font-light leading-relaxed">
-              {product.specifications.sampleNotice}
-            </p>
+            <div className="px-3 py-2 bg-brand-black">
+              <BennyzLogo variant="light" height={12} />
+            </div>
           </div>
 
-          {/* Collapsible Accordions: Description, Fabric & Care, Shipping */}
-          <div className="border-t border-brand-sand/30 pt-4 divide-y divide-brand-sand/20 text-xs">
-            {/* Description Tab */}
-            <div className="py-3">
+          <DeliveryChecker />
+
+          {/* Accordions */}
+          <div className="border-t border-brand-border divide-y divide-brand-border text-xs">
+            <div className="py-3.5">
               <button
                 type="button"
-                onClick={() => setActiveAccordion(activeAccordion === 'details' ? '' : 'details')}
-                className="w-full flex justify-between items-center text-left font-semibold uppercase tracking-editorial text-brand-black"
+                onClick={() => setActiveAccordion(activeAccordion === 'fit' ? '' : 'fit')}
+                className="w-full flex justify-between items-center text-left font-mono uppercase tracking-[0.14em] text-brand-black"
               >
-                <span>Garment Architecture & Fit Description</span>
+                <span>Fit Description</span>
                 <ChevronDown
-                  className={`w-4 h-4 transition-transform ${
-                    activeAccordion === 'details' ? 'rotate-180' : ''
-                  }`}
+                  className={`w-4 h-4 transition-transform ${activeAccordion === 'fit' ? 'rotate-180' : ''}`}
                 />
               </button>
-              {activeAccordion === 'details' && (
-                <div className="mt-3 space-y-2.5 text-brand-secondary font-light leading-relaxed">
-                  <p>{product.description}</p>
-                  <p className="text-brand-black font-medium">{product.story}</p>
-                  <ul className="list-disc list-inside space-y-1 pt-1 text-[11px]">
-                    <li>Silhouette: {product.fit} fit with ergonomic shoulder drop.</li>
-                    <li>Neckline: 1x1 rib knit with internal herringbone tape reinforcement.</li>
-                    <li>Origin: {product.specifications.origin}.</li>
-                  </ul>
+              {activeAccordion === 'fit' && (
+                <div className="mt-3 space-y-2 text-brand-secondary-text leading-relaxed">
+                  <p>{product.fitNotes}</p>
+                  <p className="text-[11px] font-mono text-brand-black/80">
+                    Model reference: {product.modelInfo.height} • Chest: {product.modelInfo.chest} • Wearing {product.modelInfo.sizeWorn}
+                  </p>
                 </div>
               )}
             </div>
 
-            {/* Fabric & Care Tab */}
-            <div className="py-3">
+            <div className="py-3.5">
               <button
                 type="button"
                 onClick={() => setActiveAccordion(activeAccordion === 'fabric' ? '' : 'fabric')}
-                className="w-full flex justify-between items-center text-left font-semibold uppercase tracking-editorial text-brand-black"
+                className="w-full flex justify-between items-center text-left font-mono uppercase tracking-[0.14em] text-brand-black"
               >
-                <span>Fabric Composition & GSM Details</span>
+                <span>Fabric &amp; Care Information</span>
                 <ChevronDown
-                  className={`w-4 h-4 transition-transform ${
-                    activeAccordion === 'fabric' ? 'rotate-180' : ''
-                  }`}
+                  className={`w-4 h-4 transition-transform ${activeAccordion === 'fabric' ? 'rotate-180' : ''}`}
                 />
               </button>
               {activeAccordion === 'fabric' && (
-                <div className="mt-3 space-y-2.5 text-brand-secondary font-light leading-relaxed">
-                  <div className="grid grid-cols-2 gap-2 p-3 bg-brand-ivory/30 border border-brand-sand/20 text-[11px]">
+                <div className="mt-3 space-y-3 text-brand-secondary-text leading-relaxed">
+                  <div className="p-3 bg-brand-ivory/50 border border-brand-border flex items-start gap-2 text-[11px]">
+                    <Info className="w-3.5 h-3.5 text-brand-mocha shrink-0 mt-0.5" />
+                    <span>{product.specifications.specNotice}</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
                     <div>
-                      <span className="font-semibold text-brand-black block">Fabric Weight:</span>
-                      <span>{product.specifications.gsm} GSM</span>
+                      <span className="font-semibold text-brand-black block">Fabric Weight</span>
+                      <span>{product.specifications.fabricWeight}</span>
                     </div>
                     <div>
-                      <span className="font-semibold text-brand-black block">Composition:</span>
+                      <span className="font-semibold text-brand-black block">Composition</span>
                       <span>{product.specifications.composition}</span>
                     </div>
                     <div>
-                      <span className="font-semibold text-brand-black block">Knit Weave:</span>
+                      <span className="font-semibold text-brand-black block">Knit / Weave</span>
                       <span>{product.specifications.weave}</span>
                     </div>
                     <div>
-                      <span className="font-semibold text-brand-black block">Pre-Shrunk:</span>
-                      <span>Enzyme washed (1.5% max)</span>
+                      <span className="font-semibold text-brand-black block">Origin</span>
+                      <span>{product.specifications.origin}</span>
                     </div>
                   </div>
-
-                  <p className="font-medium text-brand-black text-[11px] uppercase tracking-editorial">
-                    Care Guidelines:
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-[11px]">
-                    {product.specifications.careInstructions.map((inst, i) => (
-                      <li key={i}>{inst}</li>
-                    ))}
-                  </ul>
+                  <div>
+                    <span className="font-semibold text-brand-black block text-[11px] mb-1">Care</span>
+                    <ul className="list-disc list-inside space-y-1 text-[11px]">
+                      {product.specifications.careInstructions.map((inst, i) => (
+                        <li key={i}>{inst}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Shipping & Returns Tab */}
-            <div className="py-3">
+            <div className="py-3.5">
               <button
                 type="button"
                 onClick={() => setActiveAccordion(activeAccordion === 'shipping' ? '' : 'shipping')}
-                className="w-full flex justify-between items-center text-left font-semibold uppercase tracking-editorial text-brand-black"
+                className="w-full flex justify-between items-center text-left font-mono uppercase tracking-[0.14em] text-brand-black"
               >
-                <span>Delivery & 14-Day Doorstep Exchanges</span>
+                <span>Shipping &amp; Return Information</span>
                 <ChevronDown
-                  className={`w-4 h-4 transition-transform ${
-                    activeAccordion === 'shipping' ? 'rotate-180' : ''
-                  }`}
+                  className={`w-4 h-4 transition-transform ${activeAccordion === 'shipping' ? 'rotate-180' : ''}`}
                 />
               </button>
               {activeAccordion === 'shipping' && (
-                <div className="mt-3 space-y-2 text-brand-secondary font-light leading-relaxed text-[11px]">
+                <div className="mt-3 space-y-2 text-brand-secondary-text leading-relaxed text-[11px]">
                   <p>
-                    • <strong>Complimentary Express Shipping:</strong> Automatically applied to all orders above ₹1,999. Flat ₹99 for orders below.
+                    • Complimentary shipping on orders of ₹1,999 or more. Flat ₹99 shipping below ₹1,999.
                   </p>
                   <p>
-                    • <strong>Dispatch Schedule:</strong> All orders placed before 2:00 PM IST dispatch the same day from our fulfillment hub.
-                  </p>
-                  <p>
-                    • <strong>14-Day Exchanges:</strong> If your tee does not fit as desired, our courier picks it up directly from your doorstep and delivers the replacement size.
+                    • Standard dispatch &amp; return window details can be reviewed on our{' '}
+                    <Link to="/shipping-policy" className="underline text-brand-black">Shipping Policy</Link>{' '}
+                    and{' '}
+                    <Link to="/returns-and-refunds" className="underline text-brand-black">Returns &amp; Refunds</Link>{' '}
+                    pages.
                   </p>
                 </div>
               )}
@@ -463,33 +510,29 @@ export const ProductDetails: React.FC = () => {
         </div>
       </div>
 
-      {/* Related Products Section */}
-      <section className="border-t border-brand-sand/30 pt-16 space-y-8">
+      {/* Related Products */}
+      <section className="border-t border-brand-border pt-14 space-y-8">
         <div className="flex justify-between items-end">
           <div>
-            <span className="text-[10px] tracking-ultra uppercase text-brand-mocha font-semibold block">
-              COMPLETE THE WARDROBE
+            <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-mocha block">
+              More From BENNYZ
             </span>
-            <h2 className="font-serif text-2xl sm:text-3xl text-brand-black mt-1">
-              You May Also Appreciate
+            <h2 className="font-display text-2xl sm:text-3xl font-semibold text-brand-black mt-1">
+              Explore Other Cuts
             </h2>
           </div>
-          <Link
-            to="/shop"
-            className="text-xs uppercase tracking-luxury font-medium text-brand-black hover:underline"
-          >
-            View All Pieces
+          <Link to="/shop" className="text-xs uppercase tracking-[0.14em] font-medium text-brand-black hover:underline">
+            Shop All
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3.5 gap-y-8 sm:gap-6">
           {relatedProducts.map((rel) => (
             <ProductCard key={rel.id} product={rel} />
           ))}
         </div>
       </section>
 
-      {/* Sizing Modal Component */}
       <SizeChartModal
         isOpen={isSizeChartOpen}
         onClose={() => setIsSizeChartOpen(false)}

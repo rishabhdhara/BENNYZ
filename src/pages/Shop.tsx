@@ -2,45 +2,46 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PRODUCTS } from '../data/products';
 import { ProductCard } from '../components/ProductCard';
-import { FitCategory, ProductSize } from '../types';
-import { SlidersHorizontal, X, RotateCcw, ChevronDown } from 'lucide-react';
+import { FitCategory, StyleCategory } from '../types';
+import { SlidersHorizontal, X, RotateCcw, Search } from 'lucide-react';
 
 export const Shop: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  
-  // URL Param Initializers
-  const fitParam = searchParams.get('fit') as FitCategory | null;
-  const filterParam = searchParams.get('filter');
 
-  // Filter States
+  const fitParam = searchParams.get('fit') as FitCategory | null;
+  const categoryParam = searchParams.get('category') as StyleCategory | null;
+  const filterParam = searchParams.get('filter');
+  const queryParam = searchParams.get('q') || '';
+
   const [selectedFits, setSelectedFits] = useState<FitCategory[]>(fitParam ? [fitParam] : []);
-  const [selectedSizes, setSelectedSizes] = useState<ProductSize[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<StyleCategory[]>(
+    categoryParam ? [categoryParam] : []
+  );
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<'all' | 'under1500' | 'above1500'>('all');
-  const [inStockOnly, setInStockOnly] = useState<boolean>(false);
-  const [sortBy, setSortBy] = useState<string>('featured');
+  const [priceRange, setPriceRange] = useState<'all' | 'under1200' | '1200to1350' | 'above1350'>('all');
+  const [searchQuery, setSearchQuery] = useState<string>(queryParam);
+  const [sortBy, setSortBy] = useState<string>(filterParam === 'new' ? 'newest' : 'featured');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
 
-  // Sync state if URL searchParam changes (e.g. from header links)
+  // Sync URL query params when navigating from Header/Footer links
   useEffect(() => {
-    if (fitParam && !selectedFits.includes(fitParam)) {
-      setSelectedFits([fitParam]);
+    setSelectedFits(fitParam ? [fitParam] : []);
+    setSelectedCategories(categoryParam ? [categoryParam] : []);
+    if (filterParam === 'new') {
+      setSortBy('newest');
     }
-  }, [fitParam]);
+  }, [fitParam, categoryParam, filterParam]);
 
-  // Color options extracted from products
   const availableColors = useMemo(() => {
     const map = new Map<string, string>();
     PRODUCTS.forEach((p) => {
-      p.colors.forEach((c) => {
-        map.set(c.name, c.hex);
-      });
+      p.colors.forEach((c) => map.set(c.name, c.hex));
     });
     return Array.from(map.entries()).map(([name, hex]) => ({ name, hex }));
   }, []);
 
   const fitsList: FitCategory[] = ['Oversized', 'Boxy', 'Regular'];
-  const sizesList: ProductSize[] = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const categoriesList: StyleCategory[] = ['Essentials', 'Minimal', 'Graphic'];
 
   const toggleFit = (fit: FitCategory) => {
     setSelectedFits((prev) =>
@@ -48,9 +49,9 @@ export const Shop: React.FC = () => {
     );
   };
 
-  const toggleSize = (size: ProductSize) => {
-    setSelectedSizes((prev) =>
-      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
+  const toggleCategory = (cat: StyleCategory) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
     );
   };
 
@@ -62,441 +63,358 @@ export const Shop: React.FC = () => {
 
   const resetFilters = () => {
     setSelectedFits([]);
-    setSelectedSizes([]);
+    setSelectedCategories([]);
     setSelectedColors([]);
     setPriceRange('all');
-    setInStockOnly(false);
+    setSearchQuery('');
+    setSortBy('featured');
     setSearchParams({});
   };
 
   const hasActiveFilters =
     selectedFits.length > 0 ||
-    selectedSizes.length > 0 ||
+    selectedCategories.length > 0 ||
     selectedColors.length > 0 ||
     priceRange !== 'all' ||
-    inStockOnly;
+    searchQuery.trim().length > 0 ||
+    Boolean(filterParam);
 
-  // Filter & Sort Logic
   const filteredProducts = useMemo(() => {
+    const cleanSearch = searchQuery.trim().toLowerCase();
+
     return PRODUCTS.filter((product) => {
-      // New arrivals filter from URL query
-      if (filterParam === 'new' && !product.isNewArrival) {
-        return false;
-      }
+      if (filterParam === 'new' && !product.isNewArrival) return false;
+      if (filterParam === 'bestsellers' && !product.isBestseller) return false;
 
-      // Fit Filter
-      if (selectedFits.length > 0 && !selectedFits.includes(product.fit)) {
-        return false;
-      }
+      if (selectedFits.length > 0 && !selectedFits.includes(product.fit)) return false;
+      if (selectedCategories.length > 0 && !selectedCategories.includes(product.category)) return false;
 
-      // Size Filter
-      if (selectedSizes.length > 0) {
-        const hasSize = selectedSizes.some((sz) => product.availableSizes.includes(sz));
-        if (!hasSize) return false;
-      }
-
-      // Color Filter
       if (selectedColors.length > 0) {
         const hasColor = product.colors.some((c) => selectedColors.includes(c.name));
         if (!hasColor) return false;
       }
 
-      // Price Filter
-      if (priceRange === 'under1500' && product.price >= 1500) return false;
-      if (priceRange === 'above1500' && product.price < 1500) return false;
+      if (priceRange === 'under1200' && product.price >= 1200) return false;
+      if (priceRange === '1200to1350' && (product.price < 1200 || product.price > 1350)) return false;
+      if (priceRange === 'above1350' && product.price <= 1350) return false;
 
-      // In Stock Filter
-      if (inStockOnly && !product.inStock) return false;
+      if (cleanSearch) {
+        const match =
+          product.name.toLowerCase().includes(cleanSearch) ||
+          product.tagline.toLowerCase().includes(cleanSearch) ||
+          product.fit.toLowerCase().includes(cleanSearch) ||
+          product.category.toLowerCase().includes(cleanSearch) ||
+          product.colors.some((c) => c.name.toLowerCase().includes(cleanSearch));
+        if (!match) return false;
+      }
 
       return true;
     }).sort((a, b) => {
       if (sortBy === 'price-low') return a.price - b.price;
       if (sortBy === 'price-high') return b.price - a.price;
-      if (sortBy === 'gsm-high') return b.specifications.gsm - a.specifications.gsm;
       if (sortBy === 'newest') return (b.isNewArrival ? 1 : 0) - (a.isNewArrival ? 1 : 0);
-      return 0; // featured default
+      return 0;
     });
-  }, [selectedFits, selectedSizes, selectedColors, priceRange, inStockOnly, sortBy, filterParam]);
+  }, [selectedFits, selectedCategories, selectedColors, priceRange, searchQuery, sortBy, filterParam]);
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
-      {/* Page Header */}
-      <div className="border-b border-brand-sand/30 pb-6 space-y-2">
-        <span className="text-[10px] tracking-ultra uppercase text-brand-mocha font-semibold">
-          THE FULL ARCHIVE / DROP 001
-        </span>
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <h1 className="font-serif text-3xl sm:text-5xl text-brand-black font-normal">
-              Shop The Collection
-            </h1>
-            <p className="text-xs sm:text-sm text-brand-secondary font-light mt-1 max-w-xl">
-              Precision-cut heavyweight T-shirts. Engineered with 210–260 GSM combed cotton for effortless architectural drape.
-            </p>
-          </div>
+  const pageHeading =
+    filterParam === 'new'
+      ? 'New Arrivals'
+      : filterParam === 'bestsellers'
+      ? 'Bestsellers'
+      : 'All Men’s T-Shirts';
 
-          <span className="text-xs text-brand-secondary">
-            Showing <strong className="text-brand-black">{filteredProducts.length}</strong> styles
-          </span>
+  const FilterPanelContent = ({ mobile = false }: { mobile?: boolean }) => (
+    <div className="space-y-6">
+      {/* Fit Filter */}
+      <div className="space-y-2.5">
+        <h4 className="text-[11px] font-mono uppercase tracking-[0.16em] text-brand-secondary-text">
+          Fit
+        </h4>
+        <div className="space-y-2">
+          {fitsList.map((fit) => (
+            <label key={fit} className="flex items-center gap-2.5 text-xs text-brand-black cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedFits.includes(fit)}
+                onChange={() => toggleFit(fit)}
+                className="accent-brand-black"
+              />
+              <span>{fit} Fit</span>
+            </label>
+          ))}
         </div>
       </div>
 
-      {/* Controls Bar: Mobile filter toggle & Desktop Sort */}
-      <div className="flex items-center justify-between gap-4 pt-2 pb-4">
-        {/* Mobile Filter Button */}
-        <button
-          type="button"
-          onClick={() => setIsMobileFilterOpen(true)}
-          className="lg:hidden inline-flex items-center space-x-2 px-4 py-2 border border-brand-sand/40 bg-white text-xs uppercase tracking-luxury font-medium"
-        >
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-          <span>Filters {hasActiveFilters && `(${selectedFits.length + selectedSizes.length + selectedColors.length})`}</span>
-        </button>
+      {/* Style / Collection Filter */}
+      <div className="space-y-2.5 pt-4 border-t border-brand-border">
+        <h4 className="text-[11px] font-mono uppercase tracking-[0.16em] text-brand-secondary-text">
+          Style
+        </h4>
+        <div className="space-y-2">
+          {categoriesList.map((cat) => (
+            <label key={cat} className="flex items-center gap-2.5 text-xs text-brand-black cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedCategories.includes(cat)}
+                onChange={() => toggleCategory(cat)}
+                className="accent-brand-black"
+              />
+              <span>{cat}</span>
+            </label>
+          ))}
+        </div>
+      </div>
 
-        {/* Active Filter Pills (Desktop & Mobile) */}
-        <div className="hidden lg:flex flex-wrap items-center gap-2">
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="text-[11px] text-brand-mocha underline flex items-center gap-1 hover:text-brand-black mr-2"
+      {/* Colour Filter */}
+      <div className="space-y-2.5 pt-4 border-t border-brand-border">
+        <h4 className="text-[11px] font-mono uppercase tracking-[0.16em] text-brand-secondary-text">
+          Colour
+        </h4>
+        <div className="space-y-2">
+          {availableColors.map((c) => (
+            <label
+              key={c.name}
+              className="flex items-center gap-2.5 text-xs text-brand-black cursor-pointer hover:text-brand-mocha"
             >
-              <RotateCcw className="w-3 h-3" /> Clear All Filters
-            </button>
-          )}
+              <input
+                type="checkbox"
+                checked={selectedColors.includes(c.name)}
+                onChange={() => toggleColor(c.name)}
+                className="accent-brand-black"
+              />
+              <span
+                className="w-3 h-3 rounded-full border border-black/20 inline-block shrink-0"
+                style={{ backgroundColor: c.hex }}
+              />
+              <span>{c.name}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Price Filter */}
+      <div className="space-y-2.5 pt-4 border-t border-brand-border">
+        <h4 className="text-[11px] font-mono uppercase tracking-[0.16em] text-brand-secondary-text">
+          Price (INR)
+        </h4>
+        <div className="space-y-2 text-xs">
+          {[
+            { value: 'all', label: 'All Prices' },
+            { value: 'under1200', label: 'Under ₹1,200' },
+            { value: '1200to1350', label: '₹1,200 – ₹1,350' },
+            { value: 'above1350', label: 'Above ₹1,350' },
+          ].map((opt) => (
+            <label key={opt.value} className="flex items-center gap-2.5 cursor-pointer">
+              <input
+                type="radio"
+                name={mobile ? 'price-mobile' : 'price-desktop'}
+                checked={priceRange === opt.value}
+                onChange={() => setPriceRange(opt.value as typeof priceRange)}
+                className="accent-brand-black"
+              />
+              <span>{opt.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+      {/* Catalogue Header */}
+      <div className="border-b border-brand-border pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="space-y-1.5">
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-mocha block">
+            BENNYZ Catalogue
+          </span>
+          <h1 className="font-display text-3xl sm:text-5xl font-semibold text-brand-black">
+            {pageHeading}
+          </h1>
+          <p className="text-xs sm:text-sm text-brand-secondary-text max-w-xl">
+            Oversized, boxy, regular, minimal, and graphic T-shirts built for everyday wear.
+          </p>
+        </div>
+
+        <span className="text-xs font-mono text-brand-secondary-text">
+          {filteredProducts.length} {filteredProducts.length === 1 ? 'style' : 'styles'}
+        </span>
+      </div>
+
+      {/* Search, Filter Trigger & Sort Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-1">
+          <button
+            type="button"
+            onClick={() => setIsMobileFilterOpen(true)}
+            className="lg:hidden inline-flex items-center gap-2 px-4 py-2.5 border border-brand-border bg-white text-xs uppercase tracking-[0.14em] font-medium shrink-0"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Filter</span>
+          </button>
+
+          {/* Inline Search */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-brand-secondary-text absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search T-shirts by name, fit, colour..."
+              aria-label="Search T-shirts"
+              className="w-full bg-white border border-brand-border pl-9 pr-8 py-2.5 text-xs text-brand-black placeholder-brand-secondary-text/60 focus:outline-none focus:border-brand-black"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-secondary-text hover:text-brand-black"
+                aria-label="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Sort */}
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <label htmlFor="shop-sort" className="text-[11px] font-mono uppercase tracking-[0.14em] text-brand-secondary-text">
+            Sort:
+          </label>
+          <select
+            id="shop-sort"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="bg-white border border-brand-border text-xs px-3 py-2.5 text-brand-black focus:outline-none focus:border-brand-black font-medium"
+          >
+            <option value="featured">Featured</option>
+            <option value="newest">Newest</option>
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Active Filter Tags */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="text-[11px] text-brand-mocha underline inline-flex items-center gap-1 hover:text-brand-black mr-2"
+          >
+            <RotateCcw className="w-3 h-3" /> Clear all
+          </button>
           {selectedFits.map((fit) => (
-            <span
-              key={fit}
-              className="bg-brand-ivory text-brand-black text-[11px] px-2.5 py-1 border border-brand-sand/40 flex items-center gap-1.5"
-            >
-              Fit: {fit}
-              <button onClick={() => toggleFit(fit)} className="hover:text-red-600">
+            <span key={fit} className="bg-brand-ivory text-brand-black text-[11px] px-2.5 py-1 border border-brand-border flex items-center gap-1.5">
+              {fit} Fit
+              <button type="button" onClick={() => toggleFit(fit)} aria-label={`Remove ${fit} filter`}>
                 <X className="w-3 h-3" />
               </button>
             </span>
           ))}
-          {selectedSizes.map((sz) => (
-            <span
-              key={sz}
-              className="bg-brand-ivory text-brand-black text-[11px] px-2.5 py-1 border border-brand-sand/40 flex items-center gap-1.5"
-            >
-              Size: {sz}
-              <button onClick={() => toggleSize(sz)} className="hover:text-red-600">
+          {selectedCategories.map((cat) => (
+            <span key={cat} className="bg-brand-ivory text-brand-black text-[11px] px-2.5 py-1 border border-brand-border flex items-center gap-1.5">
+              {cat}
+              <button type="button" onClick={() => toggleCategory(cat)} aria-label={`Remove ${cat} filter`}>
                 <X className="w-3 h-3" />
               </button>
             </span>
           ))}
           {selectedColors.map((col) => (
-            <span
-              key={col}
-              className="bg-brand-ivory text-brand-black text-[11px] px-2.5 py-1 border border-brand-sand/40 flex items-center gap-1.5"
-            >
-              Color: {col}
-              <button onClick={() => toggleColor(col)} className="hover:text-red-600">
+            <span key={col} className="bg-brand-ivory text-brand-black text-[11px] px-2.5 py-1 border border-brand-border flex items-center gap-1.5">
+              {col}
+              <button type="button" onClick={() => toggleColor(col)} aria-label={`Remove ${col} filter`}>
                 <X className="w-3 h-3" />
               </button>
             </span>
           ))}
         </div>
+      )}
 
-        {/* Sort By Dropdown */}
-        <div className="flex items-center space-x-2 ml-auto">
-          <span className="text-[11px] uppercase tracking-editorial text-brand-secondary hidden sm:inline">
-            Sort By:
-          </span>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="bg-white border border-brand-sand/40 text-xs px-3 py-2 text-brand-black focus:outline-none focus:border-brand-black font-medium"
-          >
-            <option value="featured">Featured (Drop Order)</option>
-            <option value="price-low">Price: Low to High</option>
-            <option value="price-high">Price: High to Low</option>
-            <option value="gsm-high">Fabric Weight: Heavy GSM First</option>
-            <option value="newest">New Arrivals</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Main Grid & Desktop Sidebar Layout */}
+      {/* Main Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Desktop Filter Sidebar */}
-        <aside className="hidden lg:block lg:col-span-3 space-y-6 sticky top-28 border border-brand-sand/30 bg-white p-6">
-          <div className="flex items-center justify-between border-b border-brand-sand/30 pb-3">
-            <span className="text-xs uppercase tracking-editorial font-semibold text-brand-black">
-              Refine Collection
+        <aside className="hidden lg:block lg:col-span-3 sticky top-24 border border-brand-border bg-white p-6">
+          <div className="flex items-center justify-between border-b border-brand-border pb-3 mb-5">
+            <span className="text-xs font-mono uppercase tracking-[0.16em] font-semibold text-brand-black">
+              Filters
             </span>
             {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="text-[11px] text-brand-mocha hover:underline"
-              >
+              <button type="button" onClick={resetFilters} className="text-[11px] text-brand-mocha hover:underline">
                 Reset
               </button>
             )}
           </div>
-
-          {/* Fit Filter */}
-          <div className="space-y-3">
-            <h4 className="text-[11px] uppercase tracking-editorial font-medium text-brand-secondary">
-              Silhouette / Fit
-            </h4>
-            <div className="space-y-2">
-              {fitsList.map((fit) => (
-                <label key={fit} className="flex items-center space-x-2.5 text-xs text-brand-black cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedFits.includes(fit)}
-                    onChange={() => toggleFit(fit)}
-                    className="accent-brand-black rounded-none"
-                  />
-                  <span>{fit} Fit</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Size Filter */}
-          <div className="space-y-3 pt-4 border-t border-brand-sand/20">
-            <h4 className="text-[11px] uppercase tracking-editorial font-medium text-brand-secondary">
-              Available Sizes
-            </h4>
-            <div className="grid grid-cols-3 gap-1.5">
-              {sizesList.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => toggleSize(size)}
-                  className={`py-1.5 text-xs font-medium border text-center transition-colors ${
-                    selectedSizes.includes(size)
-                      ? 'bg-brand-black text-brand-ivory border-brand-black'
-                      : 'border-brand-sand/40 hover:border-brand-black text-brand-black'
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Color Filter */}
-          <div className="space-y-3 pt-4 border-t border-brand-sand/20">
-            <h4 className="text-[11px] uppercase tracking-editorial font-medium text-brand-secondary">
-              Colour Palette
-            </h4>
-            <div className="space-y-1.5">
-              {availableColors.map((c) => (
-                <label
-                  key={c.name}
-                  className="flex items-center space-x-2.5 text-xs text-brand-black cursor-pointer hover:text-brand-mocha"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedColors.includes(c.name)}
-                    onChange={() => toggleColor(c.name)}
-                    className="accent-brand-black rounded-none"
-                  />
-                  <span
-                    className="w-3 h-3 rounded-full border border-black/15 inline-block shrink-0"
-                    style={{ backgroundColor: c.hex }}
-                  />
-                  <span>{c.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Price Range Filter */}
-          <div className="space-y-3 pt-4 border-t border-brand-sand/20">
-            <h4 className="text-[11px] uppercase tracking-editorial font-medium text-brand-secondary">
-              Price (INR ₹)
-            </h4>
-            <div className="space-y-2 text-xs">
-              <label className="flex items-center space-x-2.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="price"
-                  checked={priceRange === 'all'}
-                  onChange={() => setPriceRange('all')}
-                  className="accent-brand-black"
-                />
-                <span>All Prices</span>
-              </label>
-              <label className="flex items-center space-x-2.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="price"
-                  checked={priceRange === 'under1500'}
-                  onChange={() => setPriceRange('under1500')}
-                  className="accent-brand-black"
-                />
-                <span>Under ₹1,500</span>
-              </label>
-              <label className="flex items-center space-x-2.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="price"
-                  checked={priceRange === 'above1500'}
-                  onChange={() => setPriceRange('above1500')}
-                  className="accent-brand-black"
-                />
-                <span>₹1,500 and Above</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Availability Filter */}
-          <div className="pt-4 border-t border-brand-sand/20">
-            <label className="flex items-center space-x-2.5 text-xs text-brand-black cursor-pointer">
-              <input
-                type="checkbox"
-                checked={inStockOnly}
-                onChange={(e) => setInStockOnly(e.target.checked)}
-                className="accent-brand-black"
-              />
-              <span>In-Stock Ready to Dispatch</span>
-            </label>
-          </div>
+          <FilterPanelContent />
         </aside>
 
-        {/* Product Grid */}
-        <main className="lg:col-span-9">
+        <div className="lg:col-span-9">
           {filteredProducts.length === 0 ? (
-            <div className="text-center py-24 bg-white border border-brand-sand/30 p-8 space-y-4">
-              <h3 className="font-serif text-2xl text-brand-black">No matching styles found</h3>
-              <p className="text-xs text-brand-secondary max-w-sm mx-auto font-light leading-relaxed">
-                We couldn't find any items matching your selected criteria. Try removing one or more active filters.
+            <div className="text-center py-20 bg-white border border-brand-border p-8 space-y-4">
+              <h3 className="font-display text-2xl font-semibold text-brand-black">
+                No matching T-shirts found
+              </h3>
+              <p className="text-xs text-brand-secondary-text max-w-sm mx-auto">
+                Try adjusting your search or clearing one of the active fit, colour, or price filters.
               </p>
               <button
                 type="button"
                 onClick={resetFilters}
-                className="px-6 py-2.5 bg-brand-black text-brand-ivory text-xs tracking-luxury uppercase font-medium hover:bg-brand-mocha transition-colors"
+                className="px-6 py-3 bg-brand-black text-brand-ivory text-xs tracking-[0.14em] uppercase font-medium hover:bg-brand-mocha transition-colors"
               >
-                Clear All Filters
+                Reset Filters
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-3.5 gap-y-8 sm:gap-x-6 sm:gap-y-10">
               {filteredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
           )}
-        </main>
+        </div>
       </div>
 
-      {/* Mobile Filter Slide-out Drawer */}
+      {/* Mobile Filter Drawer */}
       {isMobileFilterOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="fixed inset-0 bg-brand-black/60 backdrop-blur-xs"
+            className="fixed inset-0 bg-brand-black/60"
             onClick={() => setIsMobileFilterOpen(false)}
           />
-          <div className="fixed inset-y-0 right-0 max-w-xs w-full bg-brand-off-white shadow-2xl p-6 flex flex-col justify-between overflow-y-auto z-50">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-brand-sand/30">
-                <span className="font-serif text-xl font-medium text-brand-black">Filters</span>
+          <div className="fixed inset-y-0 right-0 max-w-xs w-full bg-brand-off-white shadow-2xl p-6 flex flex-col justify-between overflow-y-auto z-50 border-l border-brand-border">
+            <div>
+              <div className="flex items-center justify-between pb-4 mb-5 border-b border-brand-border">
+                <span className="font-display text-lg font-semibold text-brand-black">Filters</span>
                 <button
                   type="button"
                   onClick={() => setIsMobileFilterOpen(false)}
-                  className="p-1 text-brand-secondary hover:text-brand-black"
+                  className="p-1 text-brand-secondary-text hover:text-brand-black"
+                  aria-label="Close filters"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-
-              {/* Mobile Fit */}
-              <div className="space-y-2">
-                <h4 className="text-[11px] uppercase tracking-editorial font-medium text-brand-secondary">
-                  Silhouette / Fit
-                </h4>
-                {fitsList.map((fit) => (
-                  <label key={fit} className="flex items-center space-x-2 text-xs">
-                    <input
-                      type="checkbox"
-                      checked={selectedFits.includes(fit)}
-                      onChange={() => toggleFit(fit)}
-                      className="accent-brand-black"
-                    />
-                    <span>{fit} Fit</span>
-                  </label>
-                ))}
-              </div>
-
-              {/* Mobile Sizes */}
-              <div className="space-y-2 pt-4 border-t border-brand-sand/20">
-                <h4 className="text-[11px] uppercase tracking-editorial font-medium text-brand-secondary">
-                  Sizes
-                </h4>
-                <div className="grid grid-cols-3 gap-2">
-                  {sizesList.map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => toggleSize(size)}
-                      className={`py-1.5 text-xs font-medium border text-center ${
-                        selectedSizes.includes(size)
-                          ? 'bg-brand-black text-brand-ivory'
-                          : 'border-brand-sand/40 bg-white'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Mobile Price */}
-              <div className="space-y-2 pt-4 border-t border-brand-sand/20 text-xs">
-                <h4 className="text-[11px] uppercase tracking-editorial font-medium text-brand-secondary">
-                  Price
-                </h4>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="mobile-price"
-                    checked={priceRange === 'all'}
-                    onChange={() => setPriceRange('all')}
-                  />
-                  <span>All</span>
-                </label>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="mobile-price"
-                    checked={priceRange === 'under1500'}
-                    onChange={() => setPriceRange('under1500')}
-                  />
-                  <span>Under ₹1,500</span>
-                </label>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="mobile-price"
-                    checked={priceRange === 'above1500'}
-                    onChange={() => setPriceRange('above1500')}
-                  />
-                  <span>₹1,500 & Above</span>
-                </label>
-              </div>
+              <FilterPanelContent mobile />
             </div>
 
-            <div className="pt-6 border-t border-brand-sand/30 space-y-2">
+            <div className="pt-6 border-t border-brand-border space-y-2">
               <button
                 type="button"
                 onClick={() => setIsMobileFilterOpen(false)}
-                className="w-full py-3 bg-brand-black text-brand-ivory text-xs uppercase tracking-luxury font-medium"
+                className="w-full py-3 bg-brand-black text-brand-ivory text-xs uppercase tracking-[0.15em] font-medium"
               >
-                Apply Filters ({filteredProducts.length} Results)
+                Show {filteredProducts.length} Results
               </button>
               {hasActiveFilters && (
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="w-full py-2 text-xs text-brand-secondary underline text-center block"
+                  className="w-full py-2 text-xs text-brand-secondary-text underline"
                 >
-                  Clear All
+                  Clear All Filters
                 </button>
               )}
             </div>

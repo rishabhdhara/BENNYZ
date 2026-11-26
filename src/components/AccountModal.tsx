@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, User, Package, Shield, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { X, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { BennyzLogo } from './BennyzLogo';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -10,11 +11,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
   const [tab, setTab] = useState<'login' | 'track'>('login');
   const [email, setEmail] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
-  // Track Order State
+
   const [orderId, setOrderId] = useState('');
-  const [trackingPhone, setTrackingPhone] = useState('');
-  const [trackingResult, setTrackingResult] = useState<any | null>(null);
+  const [trackingResult, setTrackingResult] = useState<{
+    orderId: string;
+    status: string;
+    note: string;
+  } | null>(null);
 
   if (!isOpen) return null;
 
@@ -29,218 +32,164 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
     if (!orderId.trim()) return;
 
     setTrackingResult({
-      orderId: orderId.toUpperCase(),
-      status: 'In Transit',
-      carrier: 'BlueDart Express',
-      awb: 'BLU-884920491',
-      destination: 'Bengaluru, KA',
-      estimatedDelivery: 'Tomorrow by 7:00 PM',
-      steps: [
-        { label: 'Order Confirmed & Quality Checked', date: 'Yesterday, 4:30 PM', done: true },
-        { label: 'Packed in Signature Recycled Matte Box', date: 'Yesterday, 8:15 PM', done: true },
-        { label: 'Dispatched via Air Express Hub', date: 'Today, 6:00 AM', done: true },
-        { label: 'Out for Delivery to Doorstep', date: 'Pending', done: false }
-      ]
+      orderId: orderId.trim().toUpperCase(),
+      status: 'Demo Preview — Backend Tracking Pending',
+      note: 'Connect your courier tracking API (e.g. Shiprocket, Delhivery, or BlueDart) in production to display live order milestones.',
     });
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-brand-black/70 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-brand-black/65 transition-opacity"
         onClick={onClose}
       />
 
-      <div className="relative bg-brand-off-white w-full max-w-lg shadow-2xl z-10 border border-brand-sand/40 p-6 sm:p-8">
-        <div className="flex justify-between items-start pb-4 border-b border-brand-sand/30">
-          <div>
-            <span className="text-[10px] tracking-editorial uppercase text-brand-mocha font-medium block">
-              BENNYS CLIENT SUITE
-            </span>
-            <h2 className="font-serif text-2xl font-medium text-brand-black">
-              Private Concierge & Orders
+      <div className="relative bg-brand-off-white w-full max-w-lg shadow-2xl z-10 border border-brand-border p-6 sm:p-8">
+        <div className="flex justify-between items-start pb-4 border-b border-brand-border">
+          <div className="space-y-1.5">
+            <BennyzLogo variant="dark" height={16} />
+            <h2 className="font-display text-xl font-semibold text-brand-black">
+              Account &amp; Order Lookup
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 text-brand-secondary hover:text-brand-black transition-colors"
+            className="p-1 text-brand-secondary-text hover:text-brand-black transition-colors"
+            aria-label="Close account modal"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex border-b border-brand-sand/30 my-4">
+        {/* Tabs */}
+        <div className="flex border-b border-brand-border my-4">
           <button
             type="button"
-            onClick={() => { setTab('login'); setTrackingResult(null); }}
-            className={`flex-1 py-2.5 text-xs tracking-editorial uppercase font-medium border-b-2 transition-colors ${
+            onClick={() => {
+              setTab('login');
+              setTrackingResult(null);
+            }}
+            className={`flex-1 py-2.5 text-xs tracking-[0.14em] uppercase font-medium border-b-2 transition-colors ${
               tab === 'login'
                 ? 'border-brand-black text-brand-black'
-                : 'border-transparent text-brand-secondary hover:text-brand-black'
+                : 'border-transparent text-brand-secondary-text hover:text-brand-black'
             }`}
           >
-            Client Access
+            Sign In (Demo)
           </button>
           <button
             type="button"
             onClick={() => setTab('track')}
-            className={`flex-1 py-2.5 text-xs tracking-editorial uppercase font-medium border-b-2 transition-colors ${
+            className={`flex-1 py-2.5 text-xs tracking-[0.14em] uppercase font-medium border-b-2 transition-colors ${
               tab === 'track'
                 ? 'border-brand-black text-brand-black'
-                : 'border-transparent text-brand-secondary hover:text-brand-black'
+                : 'border-transparent text-brand-secondary-text hover:text-brand-black'
             }`}
           >
-            Track Order
+            Order Lookup
           </button>
         </div>
 
         {tab === 'login' ? (
           isLoggedIn ? (
             <div className="py-6 text-center space-y-4">
-              <div className="w-12 h-12 bg-brand-mocha/20 rounded-full flex items-center justify-center mx-auto text-brand-mocha">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
+              <CheckCircle2 className="w-8 h-8 text-brand-mocha mx-auto" />
               <div>
-                <h3 className="font-serif text-xl text-brand-black">Welcome to BENNYS Club</h3>
-                <p className="text-xs text-brand-secondary mt-1 font-light">
-                  Logged in as <strong className="text-brand-black">{email}</strong>
+                <h3 className="font-display text-lg font-medium text-brand-black">Signed In (Demo Session)</h3>
+                <p className="text-xs text-brand-secondary-text mt-1">
+                  Active profile: <strong className="text-brand-black">{email}</strong>
                 </p>
               </div>
-
-              <div className="p-4 bg-brand-ivory/40 border border-brand-sand/30 text-left text-xs space-y-2">
-                <p className="font-medium text-brand-black text-[11px] uppercase tracking-editorial">
-                  Member Privileges
-                </p>
-                <ul className="text-brand-secondary space-y-1 text-[11px]">
-                  <li>• Guaranteed priority allocation on Drop 002.</li>
-                  <li>• Automatic complimentary express shipping.</li>
-                  <li>• 14-day direct doorstep garment exchanges.</li>
-                </ul>
-              </div>
-
+              <p className="text-[11px] text-brand-secondary-text bg-brand-ivory/60 border border-brand-border p-3 text-left leading-relaxed">
+                This is a frontend preview session. Connect an authentication provider (such as Firebase Auth or Shopify/custom backend) when deploying live customer accounts.
+              </p>
               <button
                 type="button"
                 onClick={() => setIsLoggedIn(false)}
-                className="text-xs text-brand-secondary underline hover:text-brand-black"
+                className="text-xs text-brand-secondary-text underline hover:text-brand-black"
               >
-                Sign out of session
+                Sign out
               </button>
             </div>
           ) : (
-            <form onSubmit={handleLogin} className="py-4 space-y-4">
-              <p className="text-xs text-brand-secondary font-light leading-relaxed">
-                Sign in with your mobile or email to manage active reservations, view archived invoices, and access private drop allocations.
+            <form onSubmit={handleLogin} className="py-2 space-y-4">
+              <p className="text-xs text-brand-secondary-text leading-relaxed">
+                Enter your email address to preview the BENNYZ account interface. No password or live backend authentication is active in this build.
               </p>
 
-              <div className="space-y-1">
-                <label className="text-[10px] tracking-editorial uppercase font-semibold text-brand-secondary">
-                  Email Address or Mobile (+91)
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono uppercase tracking-[0.16em] text-brand-secondary-text block">
+                  Email Address
                 </label>
                 <input
-                  type="text"
+                  type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. aditya@example.com or 9876543210"
-                  className="w-full bg-white border border-brand-sand/50 px-3.5 py-2.5 text-xs text-brand-black focus:outline-none focus:border-brand-black"
+                  placeholder="you@example.com"
+                  className="w-full bg-white border border-brand-border px-3.5 py-2.5 text-xs text-brand-black focus:outline-none focus:border-brand-black"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 bg-brand-black text-brand-ivory text-xs tracking-luxury uppercase font-medium hover:bg-brand-mocha transition-colors flex items-center justify-center space-x-2"
+                className="w-full py-3 bg-brand-black text-brand-ivory text-xs tracking-[0.16em] uppercase font-medium hover:bg-brand-mocha transition-colors flex items-center justify-center gap-2"
               >
-                <span>CONTINUE TO CLIENT SUITE</span>
+                <span>Continue</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-
-              <p className="text-[10px] text-center text-brand-secondary/70">
-                Demo authentication active. Enter any email to experience the client suite.
-              </p>
             </form>
           )
         ) : (
           <div className="py-2 space-y-4">
             {!trackingResult ? (
               <form onSubmit={handleTrack} className="space-y-3.5">
-                <p className="text-xs text-brand-secondary font-light leading-relaxed">
-                  Enter your order ID (sent via SMS/Email after order confirmation) to monitor your courier dispatch timeline.
+                <p className="text-xs text-brand-secondary-text leading-relaxed">
+                  Enter an order reference ID to preview how customer shipment lookup works.
                 </p>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] tracking-editorial uppercase font-semibold text-brand-secondary">
-                    Order Reference ID
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono uppercase tracking-[0.16em] text-brand-secondary-text block">
+                    Order Reference
                   </label>
                   <input
                     type="text"
                     required
                     value={orderId}
                     onChange={(e) => setOrderId(e.target.value)}
-                    placeholder="e.g. BENNYS-7492"
-                    className="w-full bg-white border border-brand-sand/50 px-3.5 py-2 text-xs uppercase text-brand-black focus:outline-none focus:border-brand-black"
+                    placeholder="e.g. BENNYZ-1042"
+                    className="w-full bg-white border border-brand-border px-3.5 py-2.5 text-xs uppercase text-brand-black focus:outline-none focus:border-brand-black"
                   />
                 </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] tracking-editorial uppercase font-semibold text-brand-secondary">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={trackingPhone}
-                    onChange={(e) => setTrackingPhone(e.target.value)}
-                    placeholder="10-digit registered number"
-                    className="w-full bg-white border border-brand-sand/50 px-3.5 py-2 text-xs text-brand-black focus:outline-none focus:border-brand-black"
-                  />
-                </div>
-
                 <button
                   type="submit"
-                  className="w-full py-2.5 bg-brand-black text-brand-ivory text-xs tracking-luxury uppercase font-medium hover:bg-brand-mocha transition-colors"
+                  className="w-full py-3 bg-brand-black text-brand-ivory text-xs tracking-[0.16em] uppercase font-medium hover:bg-brand-mocha transition-colors"
                 >
-                  TRACK LIVE SHIPMENT
+                  Check Order Status
                 </button>
               </form>
             ) : (
               <div className="space-y-4 pt-2">
-                <div className="flex justify-between items-center p-3 bg-brand-ivory/50 border border-brand-sand/30 text-xs">
-                  <div>
-                    <span className="text-[10px] text-brand-secondary uppercase block">Order ID</span>
-                    <strong className="text-brand-black font-semibold">{trackingResult.orderId}</strong>
+                <div className="p-4 bg-brand-ivory/50 border border-brand-border text-xs space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-brand-secondary-text">Reference</span>
+                    <strong className="font-mono text-brand-black">{trackingResult.orderId}</strong>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[10px] text-brand-secondary uppercase block">Carrier</span>
-                    <span className="text-brand-black font-medium">{trackingResult.carrier}</span>
+                  <div className="flex justify-between">
+                    <span className="text-brand-secondary-text">Status</span>
+                    <span className="font-medium text-brand-mocha">{trackingResult.status}</span>
                   </div>
+                  <p className="text-[11px] text-brand-secondary-text pt-2 border-t border-brand-border leading-relaxed">
+                    {trackingResult.note}
+                  </p>
                 </div>
-
-                <div className="space-y-3 pl-2 border-l-2 border-brand-black/20 my-2">
-                  {trackingResult.steps.map((st: any, idx: number) => (
-                    <div key={idx} className="relative pl-4">
-                      <div
-                        className={`absolute -left-[17px] top-1 w-3 h-3 rounded-full border-2 ${
-                          st.done
-                            ? 'bg-brand-black border-brand-black'
-                            : 'bg-white border-brand-sand'
-                        }`}
-                      />
-                      <p className={`text-xs ${st.done ? 'font-medium text-brand-black' : 'text-brand-secondary'}`}>
-                        {st.label}
-                      </p>
-                      <p className="text-[10px] text-brand-secondary/70">{st.date}</p>
-                    </div>
-                  ))}
-                </div>
-
                 <button
                   type="button"
                   onClick={() => setTrackingResult(null)}
-                  className="w-full py-2 border border-brand-sand/50 text-xs uppercase tracking-editorial hover:bg-white"
+                  className="w-full py-2.5 border border-brand-border text-xs uppercase tracking-[0.14em] hover:bg-white"
                 >
-                  Track Another Shipment
+                  Search Another Order
                 </button>
               </div>
             )}

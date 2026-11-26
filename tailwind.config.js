@@ -19,14 +19,15 @@ export default {
         }
       },
       fontFamily: {
-        serif: ['"Cormorant Garamond"', '"Playfair Display"', 'Georgia', 'serif'],
+        display: ['"Space Grotesk"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
         sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       letterSpacing: {
-        tightest: '-0.035em',
-        luxury: '0.12em',
-        editorial: '0.22em',
-        ultra: '0.32em',
+        tightest: '-0.04em',
+        editorial: '0.16em',
+        luxury: '0.11em',
+        ultra: '0.26em',
       },
       screens: {
         'xs': '480px',
@@ -34,4 +35,4 @@ export default {
     },
   },
   plugins: [],
-}
+};

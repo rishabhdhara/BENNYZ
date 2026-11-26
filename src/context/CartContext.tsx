@@ -1,9 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CartItem, Product, ProductColor, ProductSize } from '../types';
+import { BRAND_CONFIG } from '../data/siteConfig';
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product, size: ProductSize, color: ProductColor, quantity?: number) => { success: boolean; message?: string };
+  addToCart: (
+    product: Product,
+    size: ProductSize,
+    color: ProductColor,
+    quantity?: number
+  ) => { success: boolean; message?: string };
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, newQty: number) => void;
   updateItemVariant: (itemId: string, newSize: ProductSize, newColor: ProductColor) => void;
@@ -24,9 +30,7 @@ interface CartContextType {
   dismissNotification: () => void;
 }
 
-const CART_STORAGE_KEY = 'bennys_cart_v1';
-const FREE_SHIPPING_THRESHOLD = 1999;
-const STANDARD_SHIPPING_FEE = 99;
+const CART_STORAGE_KEY = 'bennyz_cart_v1';
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
@@ -54,11 +58,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [cart]);
 
-  // Show transient toast notification
   const triggerNotification = (msg: string) => {
     setNotificationMessage(msg);
     setTimeout(() => {
-      setNotificationMessage(null);
+      setNotificationMessage((prev) => (prev === msg ? null : prev));
     }, 4000);
   };
 
@@ -71,51 +74,52 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     quantity: number = 1
   ): { success: boolean; message?: string } => {
     if (!size) {
-      return { success: false, message: 'Please select a size to proceed.' };
+      return { success: false, message: 'Please select a size before adding to bag.' };
     }
 
     const maxStock = product.stockCount[size] || 0;
     if (maxStock <= 0) {
-      return { success: false, message: `Size ${size} is currently out of stock.` };
+      return { success: false, message: `Size ${size} is currently unavailable.` };
     }
 
     const itemId = `${product.id}-${color.code}-${size}`;
     const existingIndex = cart.findIndex((item) => item.id === itemId);
 
-    let updatedCart = [...cart];
+    const updatedCart = [...cart];
     if (existingIndex > -1) {
       const currentQty = updatedCart[existingIndex].quantity;
       const desiredQty = currentQty + quantity;
 
       if (desiredQty > maxStock) {
-        triggerNotification(`Only ${maxStock} units available for size ${size}.`);
+        triggerNotification(`Maximum ${maxStock} units available in size ${size}.`);
         return {
           success: false,
-          message: `Only ${maxStock} units available for size ${size}.`
+          message: `Maximum ${maxStock} units available in size ${size}.`,
         };
       }
 
-      updatedCart[existingIndex].quantity = desiredQty;
+      updatedCart[existingIndex] = { ...updatedCart[existingIndex], quantity: desiredQty };
       setLastAddedItem(updatedCart[existingIndex]);
     } else {
       if (quantity > maxStock) {
         return {
           success: false,
-          message: `Only ${maxStock} units available in size ${size}.`
+          message: `Maximum ${maxStock} units available in size ${size}.`,
         };
       }
 
       const newItem: CartItem = {
         id: itemId,
         productId: product.id,
+        slug: product.slug,
         name: product.name,
         price: product.price,
         color,
         size,
         quantity,
-        image: product.images.front,
+        image: product.images.frontImage,
         fit: product.fit,
-        maxStock
+        maxStock,
       };
 
       updatedCart.push(newItem);
@@ -123,14 +127,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setCart(updatedCart);
-    triggerNotification(`Added "${product.name}" (${size}) to your bag.`);
+    triggerNotification(`Added ${product.name} (${color.name}, ${size}) to bag.`);
     setIsCartDrawerOpen(true);
     return { success: true };
   };
 
   const removeFromCart = (itemId: string) => {
     setCart((prev) => prev.filter((item) => item.id !== itemId));
-    triggerNotification('Item removed from shopping bag.');
+    triggerNotification('Removed item from bag.');
   };
 
   const updateQuantity = (itemId: string, newQty: number) => {
@@ -164,19 +168,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (existingMatch) {
         return filtered.map((it) =>
-          it.id === newId ? { ...it, quantity: Math.min(it.quantity + itemToUpdate.quantity, it.maxStock) } : it
+          it.id === newId
+            ? { ...it, quantity: Math.min(it.quantity + itemToUpdate.quantity, it.maxStock) }
+            : it
         );
-      } else {
-        return [
-          ...filtered,
-          {
-            ...itemToUpdate,
-            id: newId,
-            size: newSize,
-            color: newColor
-          }
-        ];
       }
+      return [
+        ...filtered,
+        {
+          ...itemToUpdate,
+          id: newId,
+          size: newSize,
+          color: newColor,
+        },
+      ];
     });
   };
 
@@ -188,16 +193,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const applyDiscountCode = (code: string) => {
     const cleanCode = code.trim().toUpperCase();
-    if (cleanCode === 'FIRSTDROP' || cleanCode === 'BENNYS10') {
+    if (cleanCode === 'EVERYDAY10' || cleanCode === 'BENNYZ10') {
       setDiscountCode(cleanCode);
       setDiscountPercent(10);
-      return { success: true, message: 'Code FIRSTDROP applied: 10% discount on order.' };
-    } else if (cleanCode === 'ELEVATED15' || cleanCode === 'BENNYS15') {
-      setDiscountCode(cleanCode);
-      setDiscountPercent(15);
-      return { success: true, message: 'Code applied: 15% VIP discount.' };
+      return { success: true, message: `Code ${cleanCode} applied (10% off).` };
     }
-    return { success: false, message: 'Invalid or expired promotional code.' };
+    return { success: false, message: 'Code not recognized. Try EVERYDAY10 for demo testing.' };
   };
 
   const removeDiscountCode = () => {
@@ -208,7 +209,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const discount = Math.round((subtotal * discountPercent) / 100);
   const afterDiscount = subtotal - discount;
-  const shippingFee = subtotal === 0 || afterDiscount >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING_FEE;
+  const shippingFee =
+    subtotal === 0 || afterDiscount >= BRAND_CONFIG.freeShippingThreshold
+      ? 0
+      : BRAND_CONFIG.standardShippingFee;
   const total = Math.max(0, afterDiscount + shippingFee);
   const totalItemsCount = cart.reduce((count, item) => count + item.quantity, 0);
 
@@ -227,14 +231,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         applyDiscountCode,
         removeDiscountCode,
         shippingFee,
-        freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
+        freeShippingThreshold: BRAND_CONFIG.freeShippingThreshold,
         total,
         totalItemsCount,
         isCartDrawerOpen,
         setIsCartDrawerOpen,
         lastAddedItem,
         notificationMessage,
-        dismissNotification
+        dismissNotification,
       }}
     >
       {children}
