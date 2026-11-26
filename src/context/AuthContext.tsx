@@ -69,14 +69,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let mounted = true;
 
+    const hasOAuthCallbackParams = () => {
+      const search = new URLSearchParams(window.location.search);
+      const hash = window.location.hash || '';
+      return Boolean(search.get('code') || hash.includes('access_token='));
+    };
+
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
       setSession(data.session);
       setUser(data.session?.user ?? null);
       if (data.session?.user) {
         fetchProfile(data.session.user.id);
+        setLoading(false);
+      } else if (!hasOAuthCallbackParams()) {
+        setLoading(false);
+      } else {
+        // Wait briefly for PKCE code exchange / onAuthStateChange before clearing loading
+        setTimeout(() => {
+          if (mounted) setLoading(false);
+        }, 2500);
       }
-      setLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {

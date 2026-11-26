@@ -43,6 +43,13 @@ export const Account: React.FC = () => {
   const [ordersLoading, setOrdersLoading] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const errDesc = params.get('error_description') || params.get('error');
+    if (errDesc) {
+      navigate(`/login?error_description=${encodeURIComponent(errDesc)}`, { replace: true });
+      return;
+    }
+
     if (!loading && !user) {
       navigate('/login?redirect=/account', { replace: true });
       return;
