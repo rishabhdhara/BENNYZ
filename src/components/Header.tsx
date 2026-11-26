@@ -2,19 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingBag, Search, User, Menu, X, ArrowRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { BennyzLogo } from './BennyzLogo';
 import { ANNOUNCEMENT_CONFIG, BRAND_CONFIG } from '../data/siteConfig';
 
 interface HeaderProps {
   onOpenSearch: () => void;
-  onOpenAccount: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenAccount }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
   const { totalItemsCount, setIsCartDrawerOpen } = useCart();
+  const { user, profile } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+
+  const firstName = (profile?.full_name || (user?.user_metadata?.full_name as string) || '').split(' ')[0];
+  const accountLink = user ? '/account' : '/login';
+  const accountLabel = user ? (firstName || 'Account') : 'Sign In';
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 24);
@@ -129,16 +134,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenAccount }) =
                 <span>Search</span>
               </button>
 
-              <button
-                type="button"
-                onClick={onOpenAccount}
-                className="inline-flex items-center gap-1.5 p-1 text-[11px] uppercase tracking-[0.14em] text-brand-secondary-text hover:text-brand-black transition-colors"
-                aria-label="Account"
-                title="Account"
+              <Link
+                to={accountLink}
+                className="inline-flex items-center gap-1.5 p-1 text-[11px] uppercase tracking-[0.14em] text-brand-secondary-text hover:text-brand-black transition-colors whitespace-nowrap"
+                aria-label={accountLabel}
+                title={accountLabel}
               >
-                <User className="w-4 h-4 stroke-[1.6] text-brand-black" />
-                <span className="hidden xl:inline">Account</span>
-              </button>
+                <span className="relative">
+                  <User className="w-4 h-4 stroke-[1.6] text-brand-black" />
+                  {user && (
+                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-brand-mocha" />
+                  )}
+                </span>
+                <span className="hidden xl:inline">{accountLabel}</span>
+              </Link>
 
               <button
                 type="button"
@@ -210,17 +219,27 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onOpenAccount }) =
             </div>
 
             <div className="pt-6 border-t border-brand-border space-y-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  onOpenSearch();
-                }}
-                className="w-full flex items-center justify-between py-2.5 px-3 bg-white border border-brand-border text-xs uppercase tracking-[0.14em] text-brand-black"
-              >
-                <span>Search T-Shirts</span>
-                <Search className="w-4 h-4 stroke-[1.5]" />
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onOpenSearch();
+                  }}
+                  className="flex-1 flex items-center justify-between py-2.5 px-3 bg-white border border-brand-border text-xs uppercase tracking-[0.14em] text-brand-black"
+                >
+                  <span>Search</span>
+                  <Search className="w-4 h-4 stroke-[1.5]" />
+                </button>
+                <Link
+                  to={accountLink}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex-1 flex items-center justify-between py-2.5 px-3 bg-white border border-brand-border text-xs uppercase tracking-[0.14em] text-brand-black"
+                >
+                  <span>{accountLabel}</span>
+                  <User className="w-4 h-4 stroke-[1.5]" />
+                </Link>
+              </div>
 
               <div className="text-[11px] text-brand-secondary-text space-y-1">
                 <p className="font-medium text-brand-black">{BRAND_CONFIG.tagline}</p>

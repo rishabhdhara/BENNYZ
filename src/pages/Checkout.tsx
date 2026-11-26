@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { formatPrice, checkIndianPinCode } from '../utils/formatters';
 import { loadRazorpayScript, RazorpaySuccessResponse } from '../utils/razorpay';
 import { PaymentMethod, ShippingAddress } from '../types';
@@ -42,6 +43,7 @@ interface OrderConfirmation {
 
 export const Checkout: React.FC = () => {
   const { cart, subtotal, discount, discountCode, shippingFee, total, clearCart } = useCart();
+  const { user, session, profile } = useAuth();
   const navigate = useNavigate();
 
   const isRazorpayConfigured = Boolean(RAZORPAY_KEY_ID && RAZORPAY_KEY_ID.trim().length > 0);
@@ -57,6 +59,21 @@ export const Checkout: React.FC = () => {
     state: 'Karnataka',
     pinCode: '',
   });
+
+  // Pre-fill checkout contact & saved address when customer is signed in
+  useEffect(() => {
+    if (!user && !profile) return;
+    setAddress((prev) => ({
+      ...prev,
+      fullName: prev.fullName || profile?.full_name || (user?.user_metadata?.full_name as string) || '',
+      email: prev.email || user?.email || '',
+      phone: prev.phone || profile?.phone || (user?.user_metadata?.phone as string) || '',
+      street: prev.street || profile?.default_address?.street || '',
+      city: prev.city || profile?.default_address?.city || '',
+      state: prev.state || profile?.default_address?.state || 'Karnataka',
+      pinCode: prev.pinCode || profile?.default_address?.pinCode || '',
+    }));
+  }, [user, profile]);
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi');
   const [pinFeedback, setPinFeedback] = useState<string | null>(null);
@@ -88,8 +105,18 @@ export const Checkout: React.FC = () => {
       productId: item.productId,
       size: item.size,
       colorCode: item.color.code,
+      colorName: item.color.name,
+      fit: item.fit,
       quantity: item.quantity,
     }));
+
+  const buildAuthHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (session?.access_token) {
+      headers.Authorization = `Bearer ${session.access_token}`;
+    }
+    return headers;
+  };
 
   const finalizeOrderScreen = (params: {
     orderId: string;
@@ -132,7 +159,7 @@ export const Checkout: React.FC = () => {
   const handleCodOrder = async () => {
     const res = await fetch('/api/cod-order', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildAuthHeaders(),
       body: JSON.stringify({
         items: buildSerializedItems(),
         discountCode,
@@ -196,11 +223,12 @@ export const Checkout: React.FC = () => {
         try {
           const verifyRes = await fetch('/api/verify-payment', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: buildAuthHeaders(),
             body: JSON.stringify({
               ...response,
               items: buildSerializedItems(),
               discountCode,
+              paymentMethod,
               address,
             }),
           });
@@ -451,9 +479,23 @@ export const Checkout: React.FC = () => {
           <form onSubmit={handleSubmitCheckout} className="lg:col-span-7 space-y-6">
             {/* Contact */}
             <div className="bg-white border border-brand-border p-6 sm:p-8 space-y-4">
-              <h2 className="text-xs font-mono uppercase tracking-[0.16em] font-semibold text-brand-black border-b border-brand-border pb-3">
-                1. Contact Information
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-brand-border pb-3">
+                <h2 className="text-xs font-mono uppercase tracking-[0.16em] font-semibold text-brand-black">
+                  1. Contact Information
+                </h2>
+                {user ? (
+                  <span className="text-[11px] text-brand-mocha">
+                    Signed in as {user.email}
+                  </span>
+                ) : (
+                  <Link
+                    to="/login?redirect=/checkout"
+                    className="text-[11px] underline text-brand-mocha hover:text-brand-black"
+                  >
+                    Sign in for faster checkout
+                  </Link>
+                )}
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-mono uppercase tracking-[0.14em] text-brand-secondary-text">

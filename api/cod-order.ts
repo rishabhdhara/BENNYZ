@@ -1,15 +1,21 @@
 import { calculateServerOrderTotals, ServerOrderItemInput } from './_lib/pricing';
+import {
+  persistConfirmedOrder,
+  resolveUserIdFromAuthHeader,
+} from './_lib/supabaseAdmin';
 
 interface ApiRequest {
   method?: string;
+  headers?: Record<string, string | string[] | undefined>;
   body?: {
-    items?: ServerOrderItemInput[];
+    items?: Array<ServerOrderItemInput & { fit?: string; colorName?: string }>;
     discountCode?: string;
     address?: {
       fullName?: string;
       email?: string;
       phone?: string;
       street?: string;
+      apartment?: string;
       city?: string;
       state?: string;
       pinCode?: string;
@@ -36,10 +42,28 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const totals = calculateServerOrderTotals(items, discountCode);
     const orderNumber = `BZ-COD-${Date.now().toString().slice(-6)}`;
 
-    // TODO: Persist Cash on Delivery order in your database / notify fulfillment service here.
+    const rawAuth = req.headers?.authorization || req.headers?.Authorization;
+    const authHeader = Array.isArray(rawAuth) ? rawAuth[0] : rawAuth;
+    const userId = await resolveUserIdFromAuthHeader(authHeader);
+
+    const persistence = await persistConfirmedOrder({
+      orderNumber,
+      userId,
+      customerEmail: address.email,
+      customerName: address.fullName,
+      customerPhone: address.phone,
+      shippingAddress: address,
+      paymentMethod: 'cod',
+      paymentStatus: 'cod_pending',
+      discountCode,
+      totals,
+      itemMetadata: items,
+    });
+
     return res.status(200).json({
       confirmed: true,
       orderNumber,
+      orderSaved: persistence.saved,
       totals,
     });
   } catch (err) {

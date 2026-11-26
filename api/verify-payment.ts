@@ -3,20 +3,27 @@ import {
   ServerOrderItemInput,
   verifyRazorpaySignature,
 } from './_lib/pricing';
+import {
+  persistConfirmedOrder,
+  resolveUserIdFromAuthHeader,
+} from './_lib/supabaseAdmin';
 
 interface ApiRequest {
   method?: string;
+  headers?: Record<string, string | string[] | undefined>;
   body?: {
     razorpay_order_id?: string;
     razorpay_payment_id?: string;
     razorpay_signature?: string;
-    items?: ServerOrderItemInput[];
+    items?: Array<ServerOrderItemInput & { fit?: string; colorName?: string }>;
     discountCode?: string;
+    paymentMethod?: string;
     address?: {
       fullName?: string;
       email?: string;
       phone?: string;
       street?: string;
+      apartment?: string;
       city?: string;
       state?: string;
       pinCode?: string;
@@ -45,6 +52,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     razorpay_signature = '',
     items = [],
     discountCode = '',
+    paymentMethod = 'upi',
+    address = {},
   } = req.body || {};
 
   const valid = verifyRazorpaySignature(
@@ -65,12 +74,32 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const totals = calculateServerOrderTotals(items, discountCode);
     const orderNumber = `BZ-${Date.now().toString().slice(-6)}`;
 
-    // TODO: Persist confirmed order in your database / notify fulfillment service here.
+    const rawAuth = req.headers?.authorization || req.headers?.Authorization;
+    const authHeader = Array.isArray(rawAuth) ? rawAuth[0] : rawAuth;
+    const userId = await resolveUserIdFromAuthHeader(authHeader);
+
+    const persistence = await persistConfirmedOrder({
+      orderNumber,
+      userId,
+      customerEmail: address.email || '',
+      customerName: address.fullName || '',
+      customerPhone: address.phone || '',
+      shippingAddress: address,
+      paymentMethod,
+      paymentStatus: 'paid',
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      discountCode,
+      totals,
+      itemMetadata: items,
+    });
+
     return res.status(200).json({
       verified: true,
       orderNumber,
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
+      orderSaved: persistence.saved,
       totals,
     });
   } catch (err) {
