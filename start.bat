@@ -1,6 +1,6 @@
 @echo off
 echo ===================================================
-echo   BENNYS - Premium Men's T-Shirt E-Commerce
+echo   BENNYZ - Built for your everyday.
 echo   Starting Local Development Server...
 echo ===================================================
 echo.

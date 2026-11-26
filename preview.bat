@@ -1,6 +1,7 @@
 @echo off
 echo ===================================================
-echo   BENNYS - Production Build Preview
+echo   BENNYZ - Built for your everyday.
+echo   Starting Production Build Preview...
 echo ===================================================
 echo.
 echo Opening http://localhost:3000 in your browser...
