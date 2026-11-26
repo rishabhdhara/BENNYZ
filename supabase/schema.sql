@@ -41,7 +41,7 @@ begin
   insert into public.profiles (id, full_name, phone)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data ->> 'full_name', ''),
+    coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name', ''),
     coalesce(new.raw_user_meta_data ->> 'phone', '')
   )
   on conflict (id) do nothing;
@@ -114,3 +114,10 @@ create policy "Users can view own order items"
 create index if not exists idx_orders_user_id on public.orders(user_id);
 create index if not exists idx_orders_created_at on public.orders(created_at desc);
 create index if not exists idx_order_items_order_id on public.order_items(order_id);
+
+-- Explicit privileges for authenticated users (RLS still enforces row-level ownership)
+grant usage on schema public to anon, authenticated, service_role;
+grant select, insert, update on public.profiles to authenticated;
+grant select on public.orders, public.order_items to authenticated;
+grant all on public.profiles, public.orders, public.order_items to service_role;
+

@@ -18,6 +18,13 @@ export const Login: React.FC = () => {
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    const oauthErr = searchParams.get('error_description');
+    if (oauthErr) {
+      setError(oauthErr);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     if (user) {
       navigate(redirectPath, { replace: true });
     }
@@ -216,9 +223,27 @@ export const Login: React.FC = () => {
               type="button"
               disabled={!isSupabaseConfigured}
               onClick={handleGoogleSignIn}
-              className="w-full py-3 border border-brand-border bg-brand-off-white text-xs font-medium uppercase tracking-[0.14em] text-brand-black hover:border-brand-black transition-colors disabled:opacity-50"
+              className="w-full py-3 border border-brand-border bg-brand-off-white text-xs font-medium uppercase tracking-[0.14em] text-brand-black hover:border-brand-black transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2.5"
             >
-              Continue with Google
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="#4285F4"
+                  d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 24c3.3 0 6.08-1.09 8.1-2.96l-3.88-3.05c-1.08.72-2.46 1.15-4.22 1.15-3.24 0-5.99-2.19-6.97-5.14H1.02v3.14C3.03 21.14 7.18 24 12 24Z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.03 14c-.25-.74-.39-1.54-.39-2.36 0-.82.14-1.62.39-2.36V6.14H1.02A11.98 11.98 0 0 0 0 11.64c0 1.93.46 3.75 1.02 5.5L5.03 14Z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 4.75c1.8 0 3.41.62 4.68 1.84l3.51-3.51C18.07 1.19 15.3 0 12 0 7.18 0 3.03 2.86 1.02 6.14l4.01 3.14C6.01 6.94 8.76 4.75 12 4.75Z"
+                />
+              </svg>
+              <span>Continue with Google</span>
             </button>
           </>
         )}

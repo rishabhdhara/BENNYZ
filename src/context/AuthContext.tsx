@@ -149,15 +149,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, message: 'Supabase is not configured yet.' };
     }
 
+    try {
+      if (redirectToPath && redirectToPath !== '/account') {
+        sessionStorage.setItem('bennyz_auth_redirect', redirectToPath);
+      } else {
+        sessionStorage.removeItem('bennyz_auth_redirect');
+      }
+    } catch {
+      // ignore storage errors
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}${redirectToPath}`,
+        redirectTo: `${window.location.origin}/account`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'select_account',
+        },
       },
     });
 
     if (error) {
-      return { success: false, message: error.message };
+      const msg = error.message.toLowerCase().includes('not enabled')
+        ? 'Google Sign-In is not enabled in your Supabase dashboard yet (Authentication → Providers → Google).'
+        : error.message;
+      return { success: false, message: msg };
     }
 
     return { success: true };

@@ -45,6 +45,18 @@ export const Account: React.FC = () => {
   useEffect(() => {
     if (!loading && !user) {
       navigate('/login?redirect=/account', { replace: true });
+      return;
+    }
+    if (!loading && user) {
+      try {
+        const pendingRedirect = sessionStorage.getItem('bennyz_auth_redirect');
+        if (pendingRedirect && pendingRedirect !== '/account') {
+          sessionStorage.removeItem('bennyz_auth_redirect');
+          navigate(pendingRedirect, { replace: true });
+        }
+      } catch {
+        // ignore storage errors
+      }
     }
   }, [loading, user, navigate]);
 
