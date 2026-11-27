@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, Package, User as UserIcon, CheckCircle2, ArrowRight } from 'lucide-react';
+import { LogOut, Package, User as UserIcon, CheckCircle2, ArrowRight, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { formatPrice } from '../utils/formatters';
@@ -336,9 +336,25 @@ export const Account: React.FC = () => {
                     ))}
                   </div>
 
-                  <div className="pt-2 border-t border-brand-border flex justify-between items-center text-xs font-semibold text-brand-black">
-                    <span>Order Total</span>
-                    <span>{formatPrice(order.total)}</span>
+                  <div className="pt-3 border-t border-brand-border flex flex-wrap justify-between items-center gap-3 text-xs">
+                    <span className="font-semibold text-brand-black">
+                      Order Total: {formatPrice(order.total)}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <Link
+                        to={`/track-order?order=${encodeURIComponent(order.order_number)}`}
+                        className="text-[11px] uppercase tracking-[0.12em] text-brand-black underline hover:text-brand-mocha"
+                      >
+                        Track Order
+                      </Link>
+                      <Link
+                        to={`/invoice/${encodeURIComponent(order.order_number)}`}
+                        className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.12em] text-brand-mocha underline hover:text-brand-black"
+                      >
+                        <FileText className="w-3 h-3" />
+                        <span>Invoice</span>
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))}

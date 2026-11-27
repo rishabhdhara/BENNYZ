@@ -15,10 +15,6 @@ export const supabaseAdmin = isSupabaseAdminConfigured
     })
   : null;
 
-/**
- * Validates the user's Supabase JWT from the Authorization header so
- * client requests cannot spoof another customer's user_id.
- */
 export async function resolveUserIdFromAuthHeader(
   authHeader?: string
 ): Promise<string | null> {
@@ -31,15 +27,25 @@ export async function resolveUserIdFromAuthHeader(
   return data.user.id;
 }
 
+export interface OrderStatusEvent {
+  status: string;
+  label: string;
+  timestamp: string;
+  note?: string;
+}
+
 export interface PersistOrderInput {
   orderNumber: string;
+  invoiceNumber: string;
   userId: string | null;
   customerEmail: string;
   customerName: string;
   customerPhone: string;
   shippingAddress: Record<string, unknown>;
+  billingAddress?: Record<string, unknown>;
+  customerGstin?: string;
   paymentMethod: string;
-  paymentStatus: 'paid' | 'cod_pending';
+  paymentStatus: 'paid' | 'cod_pending' | 'pending' | 'failed';
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   discountCode?: string;
@@ -54,15 +60,34 @@ export async function persistConfirmedOrder(
     return { saved: false, error: 'Supabase server credentials not configured.' };
   }
 
+  const nowIso = new Date().toISOString();
+  const initialHistory: OrderStatusEvent[] = [
+    {
+      status: 'confirmed',
+      label:
+        input.paymentStatus === 'paid'
+          ? 'Order Confirmed & Payment Verified'
+          : 'Order Confirmed (Cash on Delivery)',
+      timestamp: nowIso,
+      note:
+        input.paymentStatus === 'paid'
+          ? `Paid via ${input.paymentMethod.toUpperCase()}${input.razorpayPaymentId ? ` (${input.razorpayPaymentId})` : ''}`
+          : 'Payment due upon doorstep delivery',
+    },
+  ];
+
   const { data: orderRow, error: orderErr } = await supabaseAdmin
     .from('orders')
     .insert({
       order_number: input.orderNumber,
+      invoice_number: input.invoiceNumber,
       user_id: input.userId,
       customer_email: input.customerEmail,
       customer_name: input.customerName,
       customer_phone: input.customerPhone,
       shipping_address: input.shippingAddress,
+      billing_address: input.billingAddress || input.shippingAddress,
+      customer_gstin: input.customerGstin || '',
       payment_method: input.paymentMethod,
       payment_status: input.paymentStatus,
       order_status: 'confirmed',
@@ -72,7 +97,11 @@ export async function persistConfirmedOrder(
       subtotal: input.totals.subtotal,
       discount: input.totals.discount,
       shipping_fee: input.totals.shippingFee,
+      taxable_amount: input.totals.taxableAmount,
+      tax_amount: input.totals.taxAmount,
+      gst_rate_percent: input.totals.gstRatePercent,
       total: input.totals.total,
+      status_history: initialHistory,
     })
     .select('id')
     .single();

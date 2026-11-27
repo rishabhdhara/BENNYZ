@@ -6,7 +6,8 @@ import { ProductCard } from '../components/ProductCard';
 import { BRAND_CONFIG } from '../data/siteConfig';
 
 export const Home: React.FC = () => {
-  const newArrivals = PRODUCTS.filter((p) => p.isNewArrival).slice(0, 4);
+  const paletteDrops = PRODUCTS.filter((p) => ['bennyz-010', 'bennyz-011', 'bennyz-012', 'bennyz-013'].includes(p.id));
+  const newArrivals = paletteDrops.length === 4 ? paletteDrops : PRODUCTS.filter((p) => p.isNewArrival).slice(0, 4);
   const bestsellers = PRODUCTS.filter((p) => p.isBestseller).slice(0, 4);
 
   const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -34,8 +35,8 @@ export const Home: React.FC = () => {
         <div className="hidden lg:grid lg:grid-cols-12 min-h-[78vh]">
           <div className="lg:col-span-5 flex flex-col justify-between px-10 xl:px-14 py-12 border-r border-brand-border">
             <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.22em] text-brand-secondary-text">
-              <span>BENNYZ / MEN&apos;S TEES</span>
-              <span>ESSENTIALS &amp; GRAPHIC</span>
+              <span className="text-brand-forest font-medium">BENNYZ / VINTAGE LUXURY</span>
+              <span className="text-brand-oxblood font-medium">FOREST · OXBLOOD · COPPER</span>
             </div>
 
             <div className="space-y-6 my-auto py-8">
@@ -43,20 +44,20 @@ export const Home: React.FC = () => {
                 {BRAND_CONFIG.tagline}
               </h1>
               <p className="text-sm text-brand-secondary-text leading-relaxed max-w-sm">
-                Men&apos;s T-shirts in oversized, boxy, and regular silhouettes — built as reliable staples for daily wear.
+                Heavyweight men&apos;s T-shirts rooted in our signature palette — Forest Green, Oxblood, Burnt Copper, and Midnight Blue.
               </p>
 
               <div className="pt-2 flex items-center gap-6">
                 <Link
                   to="/shop"
-                  className="inline-flex items-center gap-3 px-7 py-4 bg-brand-black text-brand-ivory text-xs font-semibold tracking-[0.16em] uppercase hover:bg-brand-mocha transition-colors"
+                  className="inline-flex items-center gap-3 px-7 py-4 bg-brand-forest text-brand-ivory text-xs font-semibold tracking-[0.16em] uppercase hover:bg-brand-oxblood transition-colors"
                 >
                   <span>SHOP T-SHIRTS</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4 text-brand-gold" />
                 </Link>
                 <Link
                   to="/lookbook"
-                  className="text-xs font-medium uppercase tracking-[0.14em] text-brand-black underline underline-offset-4 hover:text-brand-mocha transition-colors"
+                  className="text-xs font-medium uppercase tracking-[0.14em] text-brand-forest underline underline-offset-4 hover:text-brand-oxblood transition-colors"
                 >
                   Lookbook
                 </Link>
@@ -64,45 +65,45 @@ export const Home: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-3 border-t border-brand-border pt-4 gap-4 text-[11px]">
-              <Link to="/shop?fit=Oversized" className="group">
-                <span className="font-mono text-[10px] text-brand-mocha block">01</span>
-                <span className="font-medium text-brand-black group-hover:underline">Oversized</span>
+              <Link to="/shop?collection=Forest+Green" className="group">
+                <span className="font-mono text-[10px] text-brand-forest block">01</span>
+                <span className="font-medium text-brand-black group-hover:text-brand-oxblood group-hover:underline">Forest Green</span>
               </Link>
-              <Link to="/shop?fit=Boxy" className="group">
-                <span className="font-mono text-[10px] text-brand-mocha block">02</span>
-                <span className="font-medium text-brand-black group-hover:underline">Boxy Fit</span>
+              <Link to="/shop?collection=Oxblood" className="group">
+                <span className="font-mono text-[10px] text-brand-oxblood block">02</span>
+                <span className="font-medium text-brand-black group-hover:text-brand-oxblood group-hover:underline">Oxblood</span>
               </Link>
-              <Link to="/shop?fit=Regular" className="group">
-                <span className="font-mono text-[10px] text-brand-mocha block">03</span>
-                <span className="font-medium text-brand-black group-hover:underline">Regular Fit</span>
+              <Link to="/shop?collection=Vintage" className="group">
+                <span className="font-mono text-[10px] text-brand-copper block">03</span>
+                <span className="font-medium text-brand-black group-hover:text-brand-oxblood group-hover:underline">Vintage Copper</span>
               </Link>
             </div>
           </div>
 
-          <div className="lg:col-span-7 relative overflow-hidden bg-brand-ivory">
+          <div className="lg:col-span-7 relative overflow-hidden bg-brand-forest">
             <img
-              src="/images/hero-campaign.jpg"
-              alt="BENNYZ everyday men's T-shirts editorial campaign"
+              src="/images/hero-palette-campaign.jpg"
+              alt="BENNYZ Forest Green and Oxblood luxury streetwear campaign"
               className="w-full h-full object-cover object-center"
             />
-            <div className="absolute bottom-6 left-6 bg-brand-off-white/95 border border-brand-border px-3.5 py-2 text-[10px] font-mono uppercase tracking-[0.18em] text-brand-black">
-              Essentials Collection — Out Now
+            <div className="absolute bottom-6 left-6 bg-brand-forest/95 border border-brand-gold/50 px-4 py-2 text-[10px] font-mono uppercase tracking-[0.18em] text-brand-ivory">
+              Signature Palette Drop — Out Now
             </div>
           </div>
         </div>
 
         {/* Mobile Full-Bleed Campaign Hero (CTA visible above the fold) */}
         <div className="lg:hidden">
-          <div className="relative h-[58vh] min-h-[380px] w-full overflow-hidden bg-brand-ivory">
+          <div className="relative h-[58vh] min-h-[380px] w-full overflow-hidden bg-brand-forest">
             <img
-              src="/images/hero-campaign.jpg"
-              alt="BENNYZ everyday men's T-shirts editorial campaign"
+              src="/images/hero-palette-campaign.jpg"
+              alt="BENNYZ Forest Green and Oxblood luxury streetwear campaign"
               className="w-full h-full object-cover object-center"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-brand-black/65 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-forest/90 via-transparent to-transparent" />
             <div className="absolute bottom-4 left-4 right-4 text-brand-ivory">
-              <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-sand block">
-                BENNYZ / Men&apos;s T-Shirts
+              <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-gold block">
+                BENNYZ / Forest · Oxblood · Vintage
               </span>
               <p className="font-display text-3xl font-semibold leading-[1.04] mt-1">
                 {BRAND_CONFIG.tagline}
@@ -113,14 +114,14 @@ export const Home: React.FC = () => {
           <div className="px-4 py-5 bg-brand-off-white flex items-center justify-between gap-3">
             <Link
               to="/shop"
-              className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-brand-black text-brand-ivory text-xs font-semibold tracking-[0.16em] uppercase"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-brand-forest text-brand-ivory text-xs font-semibold tracking-[0.16em] uppercase"
             >
               <span>SHOP T-SHIRTS</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 text-brand-gold" />
             </Link>
             <Link
               to="/lookbook"
-              className="px-5 py-3.5 border border-brand-black text-brand-black text-xs font-medium tracking-[0.14em] uppercase"
+              className="px-5 py-3.5 border border-brand-forest text-brand-forest text-xs font-medium tracking-[0.14em] uppercase"
             >
               Lookbook
             </Link>
@@ -164,70 +165,81 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* 3. SHOP BY FIT — Editorial Triptych (Distinct rhythm from product grid) */}
-      <section className="border-y border-brand-border bg-brand-ivory/50 py-14 sm:py-20">
+      {/* 3. THE FOUR PALETTE COLLECTIONS */}
+      <section className="border-y border-brand-border bg-brand-ivory/55 py-14 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
             <div>
-              <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-mocha block">
-                02 / Proportions
+              <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-oxblood block">
+                02 / Palette Editions
               </span>
               <h2 className="font-display text-2xl sm:text-4xl font-semibold text-brand-black mt-1">
-                Shop by Fit
+                Signature Collections
               </h2>
             </div>
             <p className="text-xs sm:text-sm text-brand-secondary-text max-w-md">
-              Three intentional T-shirt blocks cut to sit cleanly across different everyday pairings.
+              Built around four rich vintage luxury colourways — Forest Green, Oxblood, Burnt Copper, and Midnight Blue.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {[
               {
-                index: '01',
-                title: 'Oversized',
-                desc: 'Dropped shoulder line with relaxed chest volume.',
-                img: '/images/fit-oversized.jpg',
-                link: '/shop?fit=Oversized',
+                title: 'Forest Green Collection',
+                hex: '#173B35',
+                role: 'Primary · Timeless',
+                img: '/images/collection-forest.jpg',
+                link: '/shop?collection=Forest+Green',
               },
               {
-                index: '02',
-                title: 'Boxy',
-                desc: 'Wide torso cut with a slightly shorter straight hem.',
-                img: '/images/fit-boxy.jpg',
-                link: '/shop?fit=Boxy',
+                title: 'Oxblood Collection',
+                hex: '#702B3A',
+                role: 'Secondary · Luxury',
+                img: '/images/collection-oxblood.jpg',
+                link: '/shop?collection=Oxblood',
               },
               {
-                index: '03',
-                title: 'Regular Fit',
-                desc: 'Clean shoulder alignment for solo wear or layering.',
-                img: '/images/fit-regular.jpg',
-                link: '/shop?fit=Regular',
+                title: 'Vintage Collection',
+                hex: '#A85F3D',
+                role: 'Accent · Burnt Copper',
+                img: '/images/collection-vintage.jpg',
+                link: '/shop?collection=Vintage',
               },
-            ].map((item) => (
+              {
+                title: 'Midnight Collection',
+                hex: '#263B5A',
+                role: 'Supporting · Modern',
+                img: '/images/collection-midnight.jpg',
+                link: '/shop?collection=Midnight',
+              },
+            ].map((col) => (
               <Link
-                key={item.title}
-                to={item.link}
-                className="group block border border-brand-border bg-brand-off-white"
+                key={col.title}
+                to={col.link}
+                className="group block border border-brand-border bg-brand-off-white hover:border-brand-forest transition-colors"
               >
-                <div className="aspect-[3/4] overflow-hidden bg-brand-ivory">
+                <div className="aspect-[3/4] overflow-hidden bg-brand-forest/10 relative">
                   <img
-                    src={item.img}
-                    alt={`${item.title} fit T-shirt`}
-                    className="w-full h-full object-cover object-[center_15%] group-hover:scale-[1.02] transition-transform duration-700"
+                    src={col.img}
+                    alt={col.title}
+                    className="w-full h-full object-cover object-[center_15%] group-hover:scale-[1.03] transition-transform duration-700"
+                  />
+                  <span
+                    className="absolute top-3 left-3 w-4 h-4 rounded-full border border-white/60 shadow-sm"
+                    style={{ backgroundColor: col.hex }}
+                    title={col.hex}
                   />
                 </div>
-                <div className="p-4 sm:p-5 flex items-end justify-between gap-3 border-t border-brand-border">
-                  <div>
-                    <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-mocha block">
-                      {item.index}
+                <div className="p-3.5 sm:p-4 flex items-center justify-between gap-2 border-t border-brand-border">
+                  <div className="min-w-0">
+                    <span className="text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.14em] text-brand-secondary-text block">
+                      {col.role}
                     </span>
-                    <h3 className="font-display text-xl font-semibold text-brand-black mt-0.5">
-                      {item.title}
+                    <h3 className="font-display text-sm sm:text-base font-semibold text-brand-black mt-0.5 truncate">
+                      {col.title}
                     </h3>
-                    <p className="text-xs text-brand-secondary-text mt-1">{item.desc}</p>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-brand-black group-hover:translate-x-1 transition-transform shrink-0" />
+                  <ArrowRight className="w-3.5 h-3.5 text-brand-forest group-hover:translate-x-0.5 transition-transform shrink-0" />
                 </div>
               </Link>
             ))}
@@ -235,55 +247,67 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* 4. FEATURED COLLECTION — BENNYZ ESSENTIALS CAMPAIGN */}
+      {/* 4. FEATURED COLLECTION — BENNYZ HERITAGE PALETTE CAMPAIGN */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
-        <div className="bg-brand-black text-brand-ivory grid grid-cols-1 lg:grid-cols-12 border border-brand-black">
+        <div className="bg-brand-forest text-brand-ivory grid grid-cols-1 lg:grid-cols-12 border border-brand-forest">
           <div className="lg:col-span-7 relative min-h-[320px] sm:min-h-[460px] overflow-hidden">
             <img
-              src="/images/collection-essentials.jpg"
-              alt="BENNYZ Essentials Collection"
-              className="w-full h-full object-cover object-center"
+              src="/images/collection-oxblood.jpg"
+              alt="BENNYZ Oxblood & Forest Green Heritage Palette"
+              className="w-full h-full object-cover object-[center_15%]"
             />
           </div>
 
           <div className="lg:col-span-5 p-7 sm:p-10 lg:p-12 flex flex-col justify-between gap-8">
             <div className="space-y-4">
-              <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-brand-sand block">
-                Featured Collection
+              <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-brand-gold block">
+                Rich Vintage Luxury + Streetwear
               </span>
               <h2 className="font-display text-3xl sm:text-4xl font-semibold leading-tight text-brand-ivory">
-                The BENNYZ Essentials
+                The BENNYZ Brand Palette
               </h2>
-              <p className="text-xs sm:text-sm text-brand-ivory/75 leading-relaxed">
-                Core colours and repeatable cuts made for your weekly rotation — worn solo with denim, trousers, or layered under jackets.
+              <p className="text-xs sm:text-sm text-brand-ivory/80 leading-relaxed">
+                Every tone is curated to pair naturally together — deep Forest Green and Oxblood anchored by Burnt Copper, Antique Gold, Midnight Blue, and Tobacco Tan.
               </p>
 
-              <div className="pt-4 flex items-center gap-4 border-t border-white/10">
-                <img
-                  src="/images/fabric-detail.jpg"
-                  alt="Collar rib and shoulder seam detail"
-                  className="w-16 h-16 object-cover border border-white/15 shrink-0"
-                />
-                <div className="text-xs text-brand-ivory/80 space-y-0.5">
-                  <p className="font-medium text-brand-ivory">Everyday Palette</p>
-                  <p className="text-[11px] text-brand-sand">Ivory · Carbon Black · Mocha · Sand · Olive</p>
+              <div className="pt-4 border-t border-brand-gold/25 space-y-2.5">
+                <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-brand-gold">
+                  Official Palette
+                </p>
+                <div className="grid grid-cols-3 gap-2 text-[10px] font-mono">
+                  {[
+                    { name: 'Forest', hex: '#173B35' },
+                    { name: 'Oxblood', hex: '#702B3A' },
+                    { name: 'Copper', hex: '#A85F3D' },
+                    { name: 'Gold', hex: '#C19A55' },
+                    { name: 'Midnight', hex: '#263B5A' },
+                    { name: 'Tobacco', hex: '#C69B78' },
+                  ].map((sw) => (
+                    <div key={sw.name} className="flex items-center gap-1.5">
+                      <span
+                        className="w-3 h-3 rounded-full border border-white/30 shrink-0"
+                        style={{ backgroundColor: sw.hex }}
+                      />
+                      <span className="text-brand-ivory/85 truncate">{sw.name}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-3">
               <Link
-                to="/shop?category=Essentials"
-                className="inline-flex items-center gap-2 px-6 py-3.5 bg-brand-ivory text-brand-black text-xs font-semibold uppercase tracking-[0.15em] hover:bg-brand-sand transition-colors"
+                to="/shop?collection=Forest+Green"
+                className="inline-flex items-center gap-2 px-6 py-3.5 bg-brand-gold text-brand-black text-xs font-semibold uppercase tracking-[0.15em] hover:bg-brand-ivory transition-colors"
               >
-                <span>Shop Essentials</span>
+                <span>Shop Forest Green</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                to="/shop?category=Graphic"
-                className="inline-flex items-center gap-2 px-5 py-3.5 border border-white/25 text-brand-ivory text-xs uppercase tracking-[0.14em] hover:bg-white/10 transition-colors"
+                to="/shop?collection=Oxblood"
+                className="inline-flex items-center gap-2 px-5 py-3.5 bg-brand-oxblood text-brand-ivory text-xs uppercase tracking-[0.14em] hover:bg-brand-copper transition-colors"
               >
-                <span>Graphic Tees</span>
+                <span>Oxblood Drop</span>
               </Link>
             </div>
           </div>

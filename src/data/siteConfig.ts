@@ -11,8 +11,8 @@ export interface AnnouncementConfig {
  */
 export const ANNOUNCEMENT_CONFIG: AnnouncementConfig = {
   enabled: true,
-  message: 'Introducing the BENNYZ essentials collection',
-  ctaText: 'Shop T-Shirts',
+  message: 'Forest Green · Oxblood · Vintage Copper · Midnight Editions',
+  ctaText: 'Explore Collection',
   ctaLink: '/shop',
 };
 

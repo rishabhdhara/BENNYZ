@@ -77,7 +77,7 @@ export const Register: React.FC = () => {
     <div className="max-w-md mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-6">
       <div className="space-y-3 text-center">
         <div className="flex justify-center">
-          <BennyzLogo variant="dark" height={20} />
+          <BennyzLogo variant="dark" height={34} />
         </div>
         <h1 className="font-display text-3xl font-semibold text-brand-black">
           Create Account

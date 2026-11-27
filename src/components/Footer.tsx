@@ -1,33 +1,36 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Instagram, ArrowUpRight } from 'lucide-react';
-import { BennyzLogo } from './BennyzLogo';
+import { BennyzLogo, BennyzMonogram } from './BennyzLogo';
 import { BRAND_CONFIG } from '../data/siteConfig';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-brand-black text-brand-ivory pt-16 pb-10 border-t border-brand-black">
+    <footer className="no-print bg-brand-forest text-brand-ivory pt-16 pb-10 border-t-2 border-brand-gold/40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top Editorial Wordmark & Tagline Band */}
-        <div className="pb-12 border-b border-white/10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="pb-12 border-b border-brand-gold/20 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-3">
-            <Link to="/" className="inline-block" aria-label="BENNYZ Home">
-              <BennyzLogo variant="light" height={24} />
-            </Link>
-            <p className="text-xs tracking-[0.16em] uppercase text-brand-sand font-medium">
+            <div className="flex items-center gap-4">
+              <Link to="/" className="inline-block" aria-label="BENNYZ Home">
+                <BennyzLogo variant="light" height={40} />
+              </Link>
+              <BennyzMonogram variant="gold" height={26} className="hidden sm:block opacity-85" />
+            </div>
+            <p className="text-xs tracking-[0.16em] uppercase text-brand-gold font-medium">
               {BRAND_CONFIG.tagline}
             </p>
           </div>
 
-          <p className="text-xs text-brand-ivory/65 max-w-sm leading-relaxed">
-            Men&apos;s T-shirts designed around proportion, clean colour palettes, and everyday wearability.
+          <p className="text-xs text-brand-ivory/75 max-w-sm leading-relaxed">
+            Rich vintage luxury meets contemporary streetwear — men&apos;s T-shirts crafted in Forest Green, Oxblood, Burnt Copper, and Midnight Blue.
           </p>
         </div>
 
         {/* Navigation Grid (2-col on mobile, 4-col on desktop) */}
-        <div className="py-12 grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 border-b border-white/10">
+        <div className="py-12 grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 border-b border-brand-gold/20">
           <div className="space-y-3">
-            <h4 className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-sand">
+            <h4 className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-gold">
               Shop
             </h4>
             <ul className="space-y-2.5 text-xs text-brand-ivory/80 font-light">
@@ -65,7 +68,7 @@ export const Footer: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            <h4 className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-sand">
+            <h4 className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-gold">
               Brand
             </h4>
             <ul className="space-y-2.5 text-xs text-brand-ivory/80 font-light">
@@ -77,6 +80,11 @@ export const Footer: React.FC = () => {
               <li>
                 <Link to="/lookbook" className="hover:text-brand-ivory transition-colors">
                   Lookbook
+                </Link>
+              </li>
+              <li>
+                <Link to="/track-order" className="hover:text-brand-ivory transition-colors">
+                  Track Order
                 </Link>
               </li>
               <li>
@@ -93,7 +101,7 @@ export const Footer: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            <h4 className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-sand">
+            <h4 className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-gold">
               Policies
             </h4>
             <ul className="space-y-2.5 text-xs text-brand-ivory/80 font-light">
@@ -121,7 +129,7 @@ export const Footer: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            <h4 className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-sand">
+            <h4 className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-gold">
               Connect
             </h4>
             <div className="space-y-2.5 text-xs text-brand-ivory/80 font-light">

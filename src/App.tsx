@@ -28,6 +28,9 @@ import { Checkout } from './pages/Checkout';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Account } from './pages/Account';
+import { TrackOrder } from './pages/TrackOrder';
+import { Invoice } from './pages/Invoice';
+import { AdminOrders } from './pages/AdminOrders';
 import { NotFound } from './pages/NotFound';
 
 export const App: React.FC = () => {
@@ -60,6 +63,9 @@ export const App: React.FC = () => {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/account" element={<Account />} />
+                <Route path="/track-order" element={<TrackOrder />} />
+                <Route path="/invoice/:orderNumber" element={<Invoice />} />
+                <Route path="/admin" element={<AdminOrders />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

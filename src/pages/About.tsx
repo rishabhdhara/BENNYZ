@@ -96,33 +96,33 @@ export const About: React.FC = () => {
         <div className="border border-brand-border bg-white p-6 sm:p-10 space-y-6">
           <div className="space-y-1">
             <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-mocha block">
-              Visual Identity
+              Visual Identity &amp; Palette
             </span>
             <h2 className="font-display text-2xl font-semibold text-brand-black">
-              The BENNYZ Wordmark
+              The OG BENNYZ Crest &amp; Wordmark
             </h2>
             <p className="text-xs text-brand-secondary-text max-w-xl">
-              Custom geometric vector wordmark and BZ monogram designed for woven neck labels, packaging, social profiles, and storefront navigation.
+              Signature serif wordmark integrated with the BENNYZ collar-crest monogram, paired with our Forest Green (#173B35), Oxblood (#702B3A), Burnt Copper (#A85F3D), Antique Gold (#C19A55), Midnight Blue (#263B5A), and Tobacco Tan (#C69B78) palette.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-8 bg-brand-off-white border border-brand-border flex flex-col items-center justify-center gap-3">
-              <BennyzLogo variant="dark" height={24} />
+              <BennyzLogo variant="dark" height={34} />
               <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-brand-secondary-text">
-                Primary Black Wordmark
+                Forest Green Wordmark
               </span>
             </div>
-            <div className="p-8 bg-brand-black border border-brand-black flex flex-col items-center justify-center gap-3">
-              <BennyzLogo variant="light" height={24} />
-              <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-brand-sand">
-                Ivory / Light Wordmark
+            <div className="p-8 bg-brand-forest border border-brand-forest flex flex-col items-center justify-center gap-3">
+              <BennyzLogo variant="light" height={34} />
+              <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-brand-gold">
+                Ivory on Forest Green
               </span>
             </div>
-            <div className="p-8 bg-brand-ivory border border-brand-border flex flex-col items-center justify-center gap-3">
-              <BennyzMonogram variant="dark" height={40} />
-              <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-brand-secondary-text">
-                BZ Label &amp; Profile Mark
+            <div className="p-8 bg-brand-oxblood border border-brand-oxblood flex flex-col items-center justify-center gap-3">
+              <BennyzMonogram variant="gold" height={46} />
+              <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-brand-ivory">
+                NN Crest on Oxblood
               </span>
             </div>
           </div>

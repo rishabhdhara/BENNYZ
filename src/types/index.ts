@@ -2,6 +2,8 @@ export type FitCategory = 'Oversized' | 'Boxy' | 'Regular';
 
 export type StyleCategory = 'Essentials' | 'Minimal' | 'Graphic';
 
+export type PaletteCollection = 'Forest Green' | 'Oxblood' | 'Vintage' | 'Midnight';
+
 export type ProductSize = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
 
 export interface ProductColor {
@@ -38,6 +40,7 @@ export interface Product {
   fitNotes: string;
   fit: FitCategory;
   category: StyleCategory;
+  collection?: PaletteCollection;
   colors: ProductColor[];
   defaultColor: ProductColor;
   availableSizes: ProductSize[];

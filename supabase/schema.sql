@@ -1,4 +1,4 @@
--- BENNYZ E-Commerce Supabase Schema
+-- BENNYZ E-Commerce Supabase Schema (Auth, Billing, & Order Tracking)
 -- Run this SQL inside your Supabase Dashboard -> SQL Editor -> New Query
 
 create extension if not exists "pgcrypto";
@@ -31,7 +31,6 @@ create policy "Users can update own profile"
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
--- Automatically create a profile row when a new user registers
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -54,15 +53,18 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- 2. Orders Table (written server-side by Vercel API routes using service_role)
+-- 2. Orders Table (Billing + Razorpay + Tracking)
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   order_number text unique not null,
+  invoice_number text unique,
   user_id uuid references auth.users(id) on delete set null,
   customer_email text not null,
   customer_name text not null,
   customer_phone text not null,
   shipping_address jsonb not null,
+  billing_address jsonb,
+  customer_gstin text not null default '',
   payment_method text not null,
   payment_status text not null,
   order_status text not null default 'confirmed',
@@ -72,9 +74,30 @@ create table if not exists public.orders (
   subtotal integer not null,
   discount integer not null default 0,
   shipping_fee integer not null default 0,
+  taxable_amount numeric(10,2) not null default 0,
+  tax_amount numeric(10,2) not null default 0,
+  gst_rate_percent numeric(5,2) not null default 5,
   total integer not null,
+  courier_name text not null default '',
+  tracking_number text not null default '',
+  tracking_url text not null default '',
+  estimated_delivery text not null default '',
+  status_history jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
+
+-- Safe idempotent upgrades if orders table already existed from earlier setup
+alter table public.orders add column if not exists invoice_number text unique;
+alter table public.orders add column if not exists billing_address jsonb;
+alter table public.orders add column if not exists customer_gstin text not null default '';
+alter table public.orders add column if not exists taxable_amount numeric(10,2) not null default 0;
+alter table public.orders add column if not exists tax_amount numeric(10,2) not null default 0;
+alter table public.orders add column if not exists gst_rate_percent numeric(5,2) not null default 5;
+alter table public.orders add column if not exists courier_name text not null default '';
+alter table public.orders add column if not exists tracking_number text not null default '';
+alter table public.orders add column if not exists tracking_url text not null default '';
+alter table public.orders add column if not exists estimated_delivery text not null default '';
+alter table public.orders add column if not exists status_history jsonb not null default '[]'::jsonb;
 
 alter table public.orders enable row level security;
 
@@ -112,6 +135,8 @@ create policy "Users can view own order items"
   );
 
 create index if not exists idx_orders_user_id on public.orders(user_id);
+create index if not exists idx_orders_number on public.orders(order_number);
+create index if not exists idx_orders_razorpay_order_id on public.orders(razorpay_order_id);
 create index if not exists idx_orders_created_at on public.orders(created_at desc);
 create index if not exists idx_order_items_order_id on public.order_items(order_id);
 
@@ -120,4 +145,3 @@ grant usage on schema public to anon, authenticated, service_role;
 grant select, insert, update on public.profiles to authenticated;
 grant select on public.orders, public.order_items to authenticated;
 grant all on public.profiles, public.orders, public.order_items to service_role;
-

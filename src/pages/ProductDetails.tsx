@@ -403,8 +403,8 @@ export const ProductDetails: React.FC = () => {
                 {product.fit} Fit • {selectedSize || 'Select Size'}
               </p>
             </div>
-            <div className="px-3 py-2 bg-brand-black">
-              <BennyzLogo variant="light" height={12} />
+            <div className="px-3.5 py-2 bg-brand-forest border border-brand-gold/40">
+              <BennyzLogo variant="light" height={20} />
             </div>
           </div>
 

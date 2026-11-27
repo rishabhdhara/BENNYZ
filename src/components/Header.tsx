@@ -51,15 +51,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
     <>
       {/* Editable Slim Announcement Bar */}
       {ANNOUNCEMENT_CONFIG.enabled && (
-        <div className="bg-brand-black text-brand-ivory text-[10px] sm:text-[11px] tracking-[0.12em] uppercase py-2 px-3 sm:px-4 text-center font-medium">
+        <div className="no-print bg-brand-forest text-brand-ivory text-[10px] sm:text-[11px] tracking-[0.12em] uppercase py-2 px-3 sm:px-4 text-center font-medium border-b border-brand-gold/30">
           <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-x-2.5 gap-y-0.5">
             <span>{ANNOUNCEMENT_CONFIG.message}</span>
             {ANNOUNCEMENT_CONFIG.ctaText && ANNOUNCEMENT_CONFIG.ctaLink && (
               <>
-                <span className="text-brand-sand/40 hidden xs:inline">/</span>
+                <span className="text-brand-gold/50 hidden xs:inline">/</span>
                 <Link
                   to={ANNOUNCEMENT_CONFIG.ctaLink}
-                  className="underline underline-offset-4 text-brand-sand hover:text-brand-ivory transition-colors whitespace-nowrap"
+                  className="underline underline-offset-4 text-brand-gold hover:text-brand-ivory transition-colors whitespace-nowrap"
                 >
                   {ANNOUNCEMENT_CONFIG.ctaText}
                 </Link>
@@ -71,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
 
       {/* Refined Fashion Navigation Header */}
       <header
-        className={`sticky top-0 z-40 transition-all duration-300 bg-brand-off-white border-b ${
+        className={`no-print sticky top-0 z-40 transition-all duration-300 bg-brand-off-white border-b ${
           isScrolled ? 'border-brand-black/15 py-3 shadow-sm' : 'border-brand-border py-3.5 sm:py-4'
         }`}
       >
@@ -117,8 +117,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
 
             {/* Center: Brand Wordmark */}
             <div className="flex justify-center lg:col-span-2">
-              <Link to="/" className="inline-flex items-center group" aria-label="BENNYZ Home">
-                <BennyzLogo variant="dark" height={19} className="w-auto transition-opacity group-hover:opacity-75" />
+              <Link to="/" className="inline-flex items-center group py-0.5" aria-label="BENNYZ Home">
+                <BennyzLogo variant="dark" height={32} className="transition-opacity group-hover:opacity-80" />
               </Link>
             </div>
 
@@ -176,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
           <div className="fixed inset-y-0 left-0 max-w-xs w-full bg-brand-off-white shadow-2xl z-50 p-6 flex flex-col justify-between overflow-y-auto border-r border-brand-border">
             <div>
               <div className="flex items-center justify-between pb-5 border-b border-brand-border">
-                <BennyzLogo variant="dark" height={17} />
+                <BennyzLogo variant="dark" height={28} />
                 <button
                   type="button"
                   onClick={() => setIsMobileMenuOpen(false)}

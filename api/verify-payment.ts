@@ -1,5 +1,6 @@
 import {
   calculateServerOrderTotals,
+  generateInvoiceNumber,
   ServerOrderItemInput,
   verifyRazorpaySignature,
 } from './_lib/pricing';
@@ -18,6 +19,8 @@ interface ApiRequest {
     items?: Array<ServerOrderItemInput & { fit?: string; colorName?: string }>;
     discountCode?: string;
     paymentMethod?: string;
+    customerGstin?: string;
+    billingAddress?: Record<string, unknown>;
     address?: {
       fullName?: string;
       email?: string;
@@ -53,6 +56,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     items = [],
     discountCode = '',
     paymentMethod = 'upi',
+    customerGstin = '',
+    billingAddress,
     address = {},
   } = req.body || {};
 
@@ -73,6 +78,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     const totals = calculateServerOrderTotals(items, discountCode);
     const orderNumber = `BZ-${Date.now().toString().slice(-6)}`;
+    const invoiceNumber = generateInvoiceNumber(orderNumber);
 
     const rawAuth = req.headers?.authorization || req.headers?.Authorization;
     const authHeader = Array.isArray(rawAuth) ? rawAuth[0] : rawAuth;
@@ -80,11 +86,14 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     const persistence = await persistConfirmedOrder({
       orderNumber,
+      invoiceNumber,
       userId,
       customerEmail: address.email || '',
       customerName: address.fullName || '',
       customerPhone: address.phone || '',
       shippingAddress: address,
+      billingAddress: billingAddress || address,
+      customerGstin: customerGstin.trim().toUpperCase(),
       paymentMethod,
       paymentStatus: 'paid',
       razorpayOrderId: razorpay_order_id,
@@ -97,6 +106,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return res.status(200).json({
       verified: true,
       orderNumber,
+      invoiceNumber,
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
       orderSaved: persistence.saved,

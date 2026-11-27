@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PRODUCTS } from '../data/products';
 import { ProductCard } from '../components/ProductCard';
-import { FitCategory, StyleCategory } from '../types';
+import { FitCategory, StyleCategory, PaletteCollection } from '../types';
 import { SlidersHorizontal, X, RotateCcw, Search } from 'lucide-react';
 
 export const Shop: React.FC = () => {
@@ -10,12 +10,16 @@ export const Shop: React.FC = () => {
 
   const fitParam = searchParams.get('fit') as FitCategory | null;
   const categoryParam = searchParams.get('category') as StyleCategory | null;
+  const collectionParam = searchParams.get('collection') as PaletteCollection | null;
   const filterParam = searchParams.get('filter');
   const queryParam = searchParams.get('q') || '';
 
   const [selectedFits, setSelectedFits] = useState<FitCategory[]>(fitParam ? [fitParam] : []);
   const [selectedCategories, setSelectedCategories] = useState<StyleCategory[]>(
     categoryParam ? [categoryParam] : []
+  );
+  const [selectedCollections, setSelectedCollections] = useState<PaletteCollection[]>(
+    collectionParam ? [collectionParam] : []
   );
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<'all' | 'under1200' | '1200to1350' | 'above1350'>('all');
@@ -27,10 +31,11 @@ export const Shop: React.FC = () => {
   useEffect(() => {
     setSelectedFits(fitParam ? [fitParam] : []);
     setSelectedCategories(categoryParam ? [categoryParam] : []);
+    setSelectedCollections(collectionParam ? [collectionParam] : []);
     if (filterParam === 'new') {
       setSortBy('newest');
     }
-  }, [fitParam, categoryParam, filterParam]);
+  }, [fitParam, categoryParam, collectionParam, filterParam]);
 
   const availableColors = useMemo(() => {
     const map = new Map<string, string>();
@@ -42,6 +47,7 @@ export const Shop: React.FC = () => {
 
   const fitsList: FitCategory[] = ['Oversized', 'Boxy', 'Regular'];
   const categoriesList: StyleCategory[] = ['Essentials', 'Minimal', 'Graphic'];
+  const collectionsList: PaletteCollection[] = ['Forest Green', 'Oxblood', 'Vintage', 'Midnight'];
 
   const toggleFit = (fit: FitCategory) => {
     setSelectedFits((prev) =>
@@ -55,6 +61,12 @@ export const Shop: React.FC = () => {
     );
   };
 
+  const toggleCollection = (col: PaletteCollection) => {
+    setSelectedCollections((prev) =>
+      prev.includes(col) ? prev.filter((c) => c !== col) : [...prev, col]
+    );
+  };
+
   const toggleColor = (colorName: string) => {
     setSelectedColors((prev) =>
       prev.includes(colorName) ? prev.filter((c) => c !== colorName) : [...prev, colorName]
@@ -64,6 +76,7 @@ export const Shop: React.FC = () => {
   const resetFilters = () => {
     setSelectedFits([]);
     setSelectedCategories([]);
+    setSelectedCollections([]);
     setSelectedColors([]);
     setPriceRange('all');
     setSearchQuery('');
@@ -74,6 +87,7 @@ export const Shop: React.FC = () => {
   const hasActiveFilters =
     selectedFits.length > 0 ||
     selectedCategories.length > 0 ||
+    selectedCollections.length > 0 ||
     selectedColors.length > 0 ||
     priceRange !== 'all' ||
     searchQuery.trim().length > 0 ||
@@ -88,6 +102,12 @@ export const Shop: React.FC = () => {
 
       if (selectedFits.length > 0 && !selectedFits.includes(product.fit)) return false;
       if (selectedCategories.length > 0 && !selectedCategories.includes(product.category)) return false;
+      if (
+        selectedCollections.length > 0 &&
+        (!product.collection || !selectedCollections.includes(product.collection))
+      ) {
+        return false;
+      }
 
       if (selectedColors.length > 0) {
         const hasColor = product.colors.some((c) => selectedColors.includes(c.name));
@@ -115,10 +135,12 @@ export const Shop: React.FC = () => {
       if (sortBy === 'newest') return (b.isNewArrival ? 1 : 0) - (a.isNewArrival ? 1 : 0);
       return 0;
     });
-  }, [selectedFits, selectedCategories, selectedColors, priceRange, searchQuery, sortBy, filterParam]);
+  }, [selectedFits, selectedCategories, selectedCollections, selectedColors, priceRange, searchQuery, sortBy, filterParam]);
 
   const pageHeading =
-    filterParam === 'new'
+    collectionParam
+      ? `${collectionParam} Collection`
+      : filterParam === 'new'
       ? 'New Arrivals'
       : filterParam === 'bestsellers'
       ? 'Bestsellers'
@@ -126,8 +148,28 @@ export const Shop: React.FC = () => {
 
   const FilterPanelContent = ({ mobile = false }: { mobile?: boolean }) => (
     <div className="space-y-6">
-      {/* Fit Filter */}
+      {/* Palette Collections Filter */}
       <div className="space-y-2.5">
+        <h4 className="text-[11px] font-mono uppercase tracking-[0.16em] text-brand-secondary-text">
+          Collection
+        </h4>
+        <div className="space-y-2">
+          {collectionsList.map((col) => (
+            <label key={col} className="flex items-center gap-2.5 text-xs text-brand-black cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedCollections.includes(col)}
+                onChange={() => toggleCollection(col)}
+                className="accent-brand-forest"
+              />
+              <span>{col}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Fit Filter */}
+      <div className="space-y-2.5 pt-4 border-t border-brand-border">
         <h4 className="text-[11px] font-mono uppercase tracking-[0.16em] text-brand-secondary-text">
           Fit
         </h4>

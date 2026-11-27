@@ -4,13 +4,19 @@
 
 @layer base {
   :root {
-    --brand-black: #171717;
-    --brand-ivory: #EDE6D9;
-    --brand-off-white: #F7F5F0;
-    --brand-mocha: #92785F;
-    --brand-sand: #B8A58C;
-    --brand-secondary: #77736C;
-    --brand-border: #E4DEC3;
+    --brand-black: #122320;
+    --brand-forest: #173B35;
+    --brand-oxblood: #702B3A;
+    --brand-copper: #A85F3D;
+    --brand-gold: #C19A55;
+    --brand-midnight: #263B5A;
+    --brand-tobacco: #C69B78;
+    --brand-ivory: #EFE9DD;
+    --brand-off-white: #F7F3EB;
+    --brand-mocha: #A85F3D;
+    --brand-sand: #C69B78;
+    --brand-secondary: #5E5A52;
+    --brand-border: #DDD4C3;
   }
 
   body {
@@ -27,13 +33,13 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #EDE6D9;
+    background: #EFE9DD;
   }
   ::-webkit-scrollbar-thumb {
-    background: #B8A58C;
+    background: #C69B78;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #92785F;
+    background: #173B35;
   }
 }
 
@@ -85,5 +91,25 @@
 
   .animate-fade-in {
     animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-sheet {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
   }
 }

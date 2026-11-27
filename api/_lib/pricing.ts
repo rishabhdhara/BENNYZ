@@ -21,6 +21,10 @@ export const CATALOG_PRICES_INR: Record<string, { name: string; price: number }>
   'bennyz-007': { name: 'Bone Boxy Minimal Tee', price: 1199 },
   'bennyz-008': { name: 'Midnight Regular Minimal Tee', price: 1099 },
   'bennyz-009': { name: 'Washed Olive Relaxed Tee', price: 1299 },
+  'bennyz-010': { name: 'Forest Green Heavyweight Boxy Tee', price: 1399 },
+  'bennyz-011': { name: 'Oxblood Gallery Crest Oversized Tee', price: 1499 },
+  'bennyz-012': { name: 'Vintage Copper Garage Washed Tee', price: 1449 },
+  'bennyz-013': { name: 'Midnight Structured Boxy Tee', price: 1299 },
 };
 
 const FREE_SHIPPING_THRESHOLD_INR = 1999;
@@ -35,6 +39,9 @@ export interface CalculatedOrderTotals {
   subtotal: number;
   discount: number;
   shippingFee: number;
+  gstRatePercent: number;
+  taxableAmount: number;
+  taxAmount: number;
   total: number;
   amountInPaise: number;
   validatedItems: Array<{
@@ -85,10 +92,19 @@ export function calculateServerOrderTotals(
   const shippingFee = afterDiscount >= FREE_SHIPPING_THRESHOLD_INR ? 0 : STANDARD_SHIPPING_FEE_INR;
   const total = afterDiscount + shippingFee;
 
+  // Tax-inclusive reverse calculation on total payable
+  const rawGst = Number(process.env.GST_RATE_PERCENT ?? 5);
+  const gstRatePercent = Number.isFinite(rawGst) && rawGst >= 0 && rawGst <= 28 ? rawGst : 5;
+  const taxableAmount = Number((total / (1 + gstRatePercent / 100)).toFixed(2));
+  const taxAmount = Number((total - taxableAmount).toFixed(2));
+
   return {
     subtotal,
     discount,
     shippingFee,
+    gstRatePercent,
+    taxableAmount,
+    taxAmount,
     total,
     amountInPaise: total * 100,
     validatedItems,
@@ -111,4 +127,27 @@ export function verifyRazorpaySignature(
   const providedBuf = Buffer.from(signature, 'utf8');
   if (expectedBuf.length !== providedBuf.length) return false;
   return crypto.timingSafeEqual(expectedBuf, providedBuf);
+}
+
+export function verifyRazorpayWebhookSignature(
+  rawBody: string,
+  signature: string,
+  webhookSecret: string
+): boolean {
+  if (!rawBody || !signature || !webhookSecret) return false;
+  const expected = crypto
+    .createHmac('sha256', webhookSecret)
+    .update(rawBody)
+    .digest('hex');
+
+  const expectedBuf = Buffer.from(expected, 'utf8');
+  const providedBuf = Buffer.from(signature, 'utf8');
+  if (expectedBuf.length !== providedBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, providedBuf);
+}
+
+export function generateInvoiceNumber(orderNumber: string): string {
+  const year = new Date().getFullYear();
+  const suffix = orderNumber.replace(/[^A-Z0-9]/gi, '').slice(-6) || Date.now().toString().slice(-6);
+  return `INV-BZ-${year}-${suffix}`;
 }

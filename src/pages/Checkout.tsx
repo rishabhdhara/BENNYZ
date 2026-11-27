@@ -15,6 +15,8 @@ import {
   Banknote,
   AlertCircle,
   Lock,
+  FileText,
+  Package,
 } from 'lucide-react';
 
 const INDIAN_STATES = [
@@ -24,19 +26,25 @@ const INDIAN_STATES = [
   'Rajasthan', 'Tamil Nadu', 'Telangana', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
 ];
 
-const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID as string | undefined;
+const ENV_RAZORPAY_KEY_ID = (import.meta.env.VITE_RAZORPAY_KEY_ID as string | undefined)?.trim() || '';
 
 interface OrderConfirmation {
   orderId: string;
+  invoiceNumber: string;
   paymentId?: string;
   razorpayOrderId?: string;
   isDemo: boolean;
   date: string;
   address: ShippingAddress;
+  billingAddress: ShippingAddress;
+  customerGstin: string;
   items: ReturnType<typeof useCart>['cart'];
   subtotal: number;
   discount: number;
   shippingFee: number;
+  taxableAmount: number;
+  taxAmount: number;
+  gstRatePercent: number;
   total: number;
   paymentMethod: PaymentMethod;
 }
@@ -46,8 +54,32 @@ export const Checkout: React.FC = () => {
   const { user, session, profile } = useAuth();
   const navigate = useNavigate();
 
-  const isRazorpayConfigured = Boolean(RAZORPAY_KEY_ID && RAZORPAY_KEY_ID.trim().length > 0);
-  const isTestModeKey = Boolean(RAZORPAY_KEY_ID?.startsWith('rzp_test_'));
+  const [razorpayKeyId, setRazorpayKeyId] = useState<string>(ENV_RAZORPAY_KEY_ID);
+  const [razorpayMode, setRazorpayMode] = useState<'demo' | 'test' | 'live'>(
+    ENV_RAZORPAY_KEY_ID
+      ? ENV_RAZORPAY_KEY_ID.startsWith('rzp_test_')
+        ? 'test'
+        : 'live'
+      : 'demo'
+  );
+
+  // Check server payment readiness (/api/payment-config) in case keys are set on Vercel server env
+  useEffect(() => {
+    fetch('/api/payment-config')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.razorpayEnabled && data?.keyId) {
+          setRazorpayKeyId(data.keyId);
+          setRazorpayMode(data.mode || (data.keyId.startsWith('rzp_test_') ? 'test' : 'live'));
+        }
+      })
+      .catch(() => {
+        // Static preview without /api/ runtime — keep ENV fallback
+      });
+  }, []);
+
+  const isRazorpayConfigured = Boolean(razorpayKeyId);
+  const isTestModeKey = razorpayMode === 'test';
 
   const [address, setAddress] = useState<ShippingAddress>({
     fullName: '',
@@ -60,7 +92,19 @@ export const Checkout: React.FC = () => {
     pinCode: '',
   });
 
-  // Pre-fill checkout contact & saved address when customer is signed in
+  const [sameBillingAddress, setSameBillingAddress] = useState(true);
+  const [billingAddress, setBillingAddress] = useState<ShippingAddress>({
+    fullName: '',
+    email: '',
+    phone: '',
+    street: '',
+    apartment: '',
+    city: '',
+    state: 'Karnataka',
+    pinCode: '',
+  });
+  const [customerGstin, setCustomerGstin] = useState('');
+
   useEffect(() => {
     if (!user && !profile) return;
     setAddress((prev) => ({
@@ -80,6 +124,10 @@ export const Checkout: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [completedOrder, setCompletedOrder] = useState<OrderConfirmation | null>(null);
+
+  const gstRatePercent = 5;
+  const taxableAmount = Number((total / (1 + gstRatePercent / 100)).toFixed(2));
+  const taxAmount = Number((total - taxableAmount).toFixed(2));
 
   const handlePinChange = (pin: string) => {
     const val = pin.replace(/\D/g, '').slice(0, 6);
@@ -118,14 +166,18 @@ export const Checkout: React.FC = () => {
     return headers;
   };
 
+  const resolvedBillingAddress = sameBillingAddress ? address : billingAddress;
+
   const finalizeOrderScreen = (params: {
     orderId: string;
+    invoiceNumber: string;
     isDemo: boolean;
     paymentId?: string;
     razorpayOrderId?: string;
   }) => {
-    setCompletedOrder({
+    const summary: OrderConfirmation = {
       orderId: params.orderId,
+      invoiceNumber: params.invoiceNumber,
       paymentId: params.paymentId,
       razorpayOrderId: params.razorpayOrderId,
       isDemo: params.isDemo,
@@ -135,13 +187,79 @@ export const Checkout: React.FC = () => {
         day: 'numeric',
       }),
       address: { ...address },
+      billingAddress: { ...resolvedBillingAddress },
+      customerGstin: customerGstin.trim().toUpperCase(),
       items: [...cart],
       subtotal,
       discount,
       shippingFee,
+      taxableAmount,
+      taxAmount,
+      gstRatePercent,
       total,
       paymentMethod,
-    });
+    };
+
+    try {
+      sessionStorage.setItem(
+        `bennyz_order_cache_${params.orderId}`,
+        JSON.stringify({
+          order_number: params.orderId,
+          invoice_number: params.invoiceNumber,
+          customer_email: summary.address.email,
+          customer_name: summary.address.fullName,
+          customer_phone: summary.address.phone,
+          shipping_address: summary.address,
+          billing_address: summary.billingAddress,
+          customer_gstin: summary.customerGstin,
+          payment_method: summary.paymentMethod,
+          payment_status: params.isDemo ? 'demo' : paymentMethod === 'cod' ? 'cod_pending' : 'paid',
+          order_status: 'confirmed',
+          razorpay_order_id: params.razorpayOrderId || null,
+          razorpay_payment_id: params.paymentId || null,
+          discount_code: discountCode || null,
+          subtotal: summary.subtotal,
+          discount: summary.discount,
+          shipping_fee: summary.shippingFee,
+          taxable_amount: summary.taxableAmount,
+          tax_amount: summary.taxAmount,
+          gst_rate_percent: summary.gstRatePercent,
+          total: summary.total,
+          courier_name: '',
+          tracking_number: '',
+          tracking_url: '',
+          estimated_delivery: '',
+          is_demo: params.isDemo,
+          created_at: new Date().toISOString(),
+          status_history: [
+            {
+              status: 'confirmed',
+              label: params.isDemo
+                ? 'Demo Order Placed'
+                : paymentMethod === 'cod'
+                ? 'Order Confirmed (Cash on Delivery)'
+                : 'Order Confirmed & Payment Verified',
+              timestamp: new Date().toISOString(),
+              note: params.paymentId ? `Razorpay Payment ID: ${params.paymentId}` : undefined,
+            },
+          ],
+          order_items: summary.items.map((it) => ({
+            id: it.id,
+            product_name: it.name,
+            fit: it.fit,
+            color_name: it.color.name,
+            size: it.size,
+            quantity: it.quantity,
+            unit_price: it.price,
+            line_total: it.price * it.quantity,
+          })),
+        })
+      );
+    } catch {
+      // ignore storage errors
+    }
+
+    setCompletedOrder(summary);
     clearCart();
     setIsSubmitting(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -149,11 +267,13 @@ export const Checkout: React.FC = () => {
 
   const handleDemoOrder = () => {
     setTimeout(() => {
+      const orderId = `BENNYZ-DEMO-${Math.floor(100000 + Math.random() * 900000)}`;
       finalizeOrderScreen({
-        orderId: `BENNYZ-DEMO-${Math.floor(100000 + Math.random() * 900000)}`,
+        orderId,
+        invoiceNumber: `INV-DEMO-${orderId.slice(-6)}`,
         isDemo: true,
       });
-    }, 500);
+    }, 450);
   };
 
   const handleCodOrder = async () => {
@@ -163,6 +283,8 @@ export const Checkout: React.FC = () => {
       body: JSON.stringify({
         items: buildSerializedItems(),
         discountCode,
+        customerGstin: customerGstin.trim().toUpperCase(),
+        billingAddress: resolvedBillingAddress,
         address,
       }),
     });
@@ -174,13 +296,14 @@ export const Checkout: React.FC = () => {
 
     finalizeOrderScreen({
       orderId: data.orderNumber,
+      invoiceNumber: data.invoiceNumber || `INV-BZ-${data.orderNumber.slice(-6)}`,
       isDemo: false,
     });
   };
 
   const handleRazorpayOrder = async () => {
     const scriptLoaded = await loadRazorpayScript();
-    if (!scriptLoaded || !window.Razorpay || !RAZORPAY_KEY_ID) {
+    if (!scriptLoaded || !window.Razorpay || !razorpayKeyId) {
       throw new Error('Could not load Razorpay Checkout SDK. Check your connection and try again.');
     }
 
@@ -200,7 +323,7 @@ export const Checkout: React.FC = () => {
     }
 
     const rzp = new window.Razorpay({
-      key: RAZORPAY_KEY_ID,
+      key: razorpayKeyId,
       amount: orderData.amount,
       currency: orderData.currency || 'INR',
       name: 'BENNYZ',
@@ -229,6 +352,8 @@ export const Checkout: React.FC = () => {
               items: buildSerializedItems(),
               discountCode,
               paymentMethod,
+              customerGstin: customerGstin.trim().toUpperCase(),
+              billingAddress: resolvedBillingAddress,
               address,
             }),
           });
@@ -245,6 +370,7 @@ export const Checkout: React.FC = () => {
 
           finalizeOrderScreen({
             orderId: verifyData.orderNumber,
+            invoiceNumber: verifyData.invoiceNumber || `INV-BZ-${verifyData.orderNumber.slice(-6)}`,
             paymentId: verifyData.razorpayPaymentId,
             razorpayOrderId: verifyData.razorpayOrderId,
             isDemo: false,
@@ -294,7 +420,6 @@ export const Checkout: React.FC = () => {
 
     try {
       if (!isRazorpayConfigured) {
-        // Explicit demo mode when VITE_RAZORPAY_KEY_ID is not set in environment
         handleDemoOrder();
         return;
       }
@@ -311,38 +436,39 @@ export const Checkout: React.FC = () => {
   };
 
   if (completedOrder) {
+    const invoiceUrl = `/invoice/${encodeURIComponent(completedOrder.orderId)}?contact=${encodeURIComponent(completedOrder.address.email)}`;
+    const trackUrl = `/track-order?order=${encodeURIComponent(completedOrder.orderId)}&contact=${encodeURIComponent(completedOrder.address.email)}`;
+
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-8">
         <div className="bg-white border border-brand-border p-6 sm:p-10 space-y-8">
           <div className="text-center space-y-3 pb-6 border-b border-brand-border">
             <CheckCircle2 className="w-10 h-10 text-brand-mocha mx-auto" />
             <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-mocha block">
-              {completedOrder.isDemo
-                ? 'Demo Order Summary (No Payment Charged)'
-                : 'Order Confirmed'}
+              {completedOrder.isDemo ? 'Demo Order Summary (No Payment Charged)' : 'Order Confirmed'}
             </span>
             <h1 className="font-display text-3xl font-semibold text-brand-black">
               {completedOrder.isDemo ? 'Demo Checkout Complete' : 'Thank You for Your Order'}
             </h1>
             <p className="text-xs text-brand-secondary-text max-w-md mx-auto leading-relaxed">
               {completedOrder.isDemo
-                ? `Simulated demo order for ${completedOrder.address.email}. Configure VITE_RAZORPAY_KEY_ID and server Razorpay secrets to process live UPI, card, and net banking payments.`
-                : `Order details recorded for ${completedOrder.address.email}.`}
+                ? `Simulated demo order for ${completedOrder.address.email}. Add your Razorpay keys to process live UPI, card, and net banking payments.`
+                : `Confirmation and billing details generated for ${completedOrder.address.email}.`}
             </p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-brand-ivory/50 border border-brand-border text-xs">
             <div>
               <span className="text-[10px] font-mono text-brand-secondary-text uppercase block">
-                {completedOrder.isDemo ? 'Demo ID' : 'Order ID'}
+                Order ID
               </span>
               <strong className="text-brand-black font-mono">{completedOrder.orderId}</strong>
             </div>
             <div>
               <span className="text-[10px] font-mono text-brand-secondary-text uppercase block">
-                Date
+                Invoice No.
               </span>
-              <span className="text-brand-black">{completedOrder.date}</span>
+              <strong className="text-brand-black font-mono">{completedOrder.invoiceNumber}</strong>
             </div>
             <div>
               <span className="text-[10px] font-mono text-brand-secondary-text uppercase block">
@@ -363,15 +489,13 @@ export const Checkout: React.FC = () => {
           {completedOrder.paymentId && (
             <div className="p-3 bg-emerald-50/70 border border-emerald-200 text-xs text-emerald-950 font-mono flex flex-wrap justify-between gap-2">
               <span>Razorpay Payment ID: {completedOrder.paymentId}</span>
-              {completedOrder.razorpayOrderId && (
-                <span>Order Ref: {completedOrder.razorpayOrderId}</span>
-              )}
+              {completedOrder.razorpayOrderId && <span>Order Ref: {completedOrder.razorpayOrderId}</span>}
             </div>
           )}
 
           <div className="space-y-3">
             <h2 className="text-xs font-mono uppercase tracking-[0.14em] text-brand-black">
-              Items ({completedOrder.items.length})
+              Billed Items ({completedOrder.items.length})
             </h2>
             <div className="divide-y divide-brand-border border-y border-brand-border">
               {completedOrder.items.map((it) => (
@@ -395,20 +519,28 @@ export const Checkout: React.FC = () => {
                 </div>
               ))}
             </div>
+            <div className="text-[11px] text-brand-secondary-text flex flex-wrap justify-between gap-2 pt-1">
+              <span>Taxable Value: {formatPrice(completedOrder.taxableAmount)}</span>
+              <span>
+                GST ({completedOrder.gstRatePercent}% incl.): ₹{completedOrder.taxAmount.toFixed(2)}
+              </span>
+            </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Link
-              to="/shop"
-              className="flex-1 py-3.5 bg-brand-black text-brand-ivory text-xs tracking-[0.15em] uppercase font-medium text-center hover:bg-brand-mocha transition-colors"
+              to={invoiceUrl}
+              className="py-3.5 bg-brand-black text-brand-ivory text-xs tracking-[0.15em] uppercase font-medium text-center hover:bg-brand-mocha transition-colors inline-flex items-center justify-center gap-2"
             >
-              Continue Shopping
+              <FileText className="w-4 h-4" />
+              <span>View / Print Invoice</span>
             </Link>
             <Link
-              to="/"
-              className="flex-1 py-3.5 border border-brand-black text-brand-black text-xs tracking-[0.15em] uppercase font-medium text-center hover:bg-brand-ivory transition-colors"
+              to={trackUrl}
+              className="py-3.5 border border-brand-black text-brand-black text-xs tracking-[0.15em] uppercase font-medium text-center hover:bg-brand-ivory transition-colors inline-flex items-center justify-center gap-2"
             >
-              Return Home
+              <Package className="w-4 h-4" />
+              <span>Track Order</span>
             </Link>
           </div>
         </div>
@@ -418,7 +550,7 @@ export const Checkout: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-8">
-      {/* Status Banner: Live/Test Razorpay vs Demo Mode */}
+      {/* Status Banner */}
       {isRazorpayConfigured ? (
         <div className="bg-brand-ivory border border-brand-border p-4 flex items-start gap-3 text-xs">
           <Lock className="w-4 h-4 text-brand-mocha shrink-0 mt-0.5" />
@@ -430,8 +562,8 @@ export const Checkout: React.FC = () => {
             </p>
             <p className="text-brand-secondary-text leading-relaxed">
               {isTestModeKey
-                ? 'Using test Razorpay keys. You can test UPI inside the Razorpay popup using success@razorpay without real funds.'
-                : 'Secured by Razorpay Checkout with server-side order creation and HMAC payment verification.'}
+                ? 'Test mode active. In the Razorpay popup, choose UPI and test using success@razorpay without charging real funds.'
+                : 'Secured by Razorpay Checkout with server-side order creation, HMAC verification, and automated invoice generation.'}
             </p>
           </div>
         </div>
@@ -443,13 +575,9 @@ export const Checkout: React.FC = () => {
               Demo Checkout — Razorpay Keys Not Configured Yet
             </p>
             <p className="text-brand-secondary-text leading-relaxed">
-              Razorpay API endpoints (<code className="font-mono text-brand-black">/api/create-order</code>,{' '}
-              <code className="font-mono text-brand-black">/api/verify-payment</code>,{' '}
-              <code className="font-mono text-brand-black">/api/cod-order</code>) are wired. Add{' '}
-              <code className="font-mono text-brand-black">VITE_RAZORPAY_KEY_ID</code>,{' '}
-              <code className="font-mono text-brand-black">RAZORPAY_KEY_ID</code>, and{' '}
-              <code className="font-mono text-brand-black">RAZORPAY_KEY_SECRET</code> in your Vercel environment variables (see{' '}
-              <code className="font-mono text-brand-black">.env.example</code>) to accept live UPI, Card, and Net Banking payments. Until then, submitting places a simulated demo order.
+              Add <code className="font-mono text-brand-black">RAZORPAY_KEY_ID</code>,{' '}
+              <code className="font-mono text-brand-black">RAZORPAY_KEY_SECRET</code>, and{' '}
+              <code className="font-mono text-brand-black">SUPABASE_SERVICE_ROLE_KEY</code> in Vercel Environment Variables to activate live UPI, Card, and Net Banking billing. Until then, submitting generates a clearly labelled demo order and demo invoice.
             </p>
           </div>
         </div>
@@ -477,16 +605,14 @@ export const Checkout: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           <form onSubmit={handleSubmitCheckout} className="lg:col-span-7 space-y-6">
-            {/* Contact */}
+            {/* 1. Contact */}
             <div className="bg-white border border-brand-border p-6 sm:p-8 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-brand-border pb-3">
                 <h2 className="text-xs font-mono uppercase tracking-[0.16em] font-semibold text-brand-black">
                   1. Contact Information
                 </h2>
                 {user ? (
-                  <span className="text-[11px] text-brand-mocha">
-                    Signed in as {user.email}
-                  </span>
+                  <span className="text-[11px] text-brand-mocha">Signed in as {user.email}</span>
                 ) : (
                   <Link
                     to="/login?redirect=/checkout"
@@ -496,6 +622,7 @@ export const Checkout: React.FC = () => {
                   </Link>
                 )}
               </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-mono uppercase tracking-[0.14em] text-brand-secondary-text">
@@ -545,7 +672,7 @@ export const Checkout: React.FC = () => {
               </div>
             </div>
 
-            {/* Shipping */}
+            {/* 2. Shipping */}
             <div className="bg-white border border-brand-border p-6 sm:p-8 space-y-4">
               <h2 className="text-xs font-mono uppercase tracking-[0.16em] font-semibold text-brand-black border-b border-brand-border pb-3">
                 2. Shipping Address
@@ -621,11 +748,120 @@ export const Checkout: React.FC = () => {
               </div>
             </div>
 
-            {/* Payment Method */}
+            {/* 3. Billing Information */}
+            <div className="bg-white border border-brand-border p-6 sm:p-8 space-y-4">
+              <h2 className="text-xs font-mono uppercase tracking-[0.16em] font-semibold text-brand-black border-b border-brand-border pb-3">
+                3. Billing Details &amp; Invoice
+              </h2>
+
+              <label className="flex items-center gap-2.5 text-xs text-brand-black cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sameBillingAddress}
+                  onChange={(e) => setSameBillingAddress(e.target.checked)}
+                  className="accent-brand-black"
+                />
+                <span>Billing address is the same as shipping address</span>
+              </label>
+
+              {!sameBillingAddress && (
+                <div className="space-y-3 pt-2 border-t border-brand-border">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      required
+                      value={billingAddress.fullName}
+                      onChange={(e) =>
+                        setBillingAddress({ ...billingAddress, fullName: e.target.value })
+                      }
+                      placeholder="Billing Name / Company *"
+                      className="bg-brand-off-white border border-brand-border px-3 py-2.5 text-xs focus:outline-none focus:border-brand-black"
+                    />
+                    <input
+                      type="tel"
+                      required
+                      maxLength={10}
+                      value={billingAddress.phone}
+                      onChange={(e) =>
+                        setBillingAddress({
+                          ...billingAddress,
+                          phone: e.target.value.replace(/\D/g, ''),
+                        })
+                      }
+                      placeholder="Billing Phone *"
+                      className="bg-brand-off-white border border-brand-border px-3 py-2.5 text-xs focus:outline-none focus:border-brand-black"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={billingAddress.street}
+                    onChange={(e) =>
+                      setBillingAddress({ ...billingAddress, street: e.target.value })
+                    }
+                    placeholder="Billing Street Address *"
+                    className="w-full bg-brand-off-white border border-brand-border px-3 py-2.5 text-xs focus:outline-none focus:border-brand-black"
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={billingAddress.pinCode}
+                      onChange={(e) =>
+                        setBillingAddress({
+                          ...billingAddress,
+                          pinCode: e.target.value.replace(/\D/g, '').slice(0, 6),
+                        })
+                      }
+                      placeholder="PIN Code *"
+                      className="bg-brand-off-white border border-brand-border px-3 py-2.5 text-xs font-mono focus:outline-none focus:border-brand-black"
+                    />
+                    <input
+                      type="text"
+                      required
+                      value={billingAddress.city}
+                      onChange={(e) =>
+                        setBillingAddress({ ...billingAddress, city: e.target.value })
+                      }
+                      placeholder="City *"
+                      className="bg-brand-off-white border border-brand-border px-3 py-2.5 text-xs focus:outline-none focus:border-brand-black"
+                    />
+                    <select
+                      value={billingAddress.state}
+                      onChange={(e) =>
+                        setBillingAddress({ ...billingAddress, state: e.target.value })
+                      }
+                      className="bg-brand-off-white border border-brand-border px-3 py-2.5 text-xs focus:outline-none focus:border-brand-black"
+                    >
+                      {INDIAN_STATES.map((st) => (
+                        <option key={st} value={st}>{st}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono uppercase tracking-[0.14em] text-brand-secondary-text">
+                  Customer GSTIN (Optional — for business tax invoice)
+                </label>
+                <input
+                  type="text"
+                  maxLength={15}
+                  value={customerGstin}
+                  onChange={(e) => setCustomerGstin(e.target.value.toUpperCase())}
+                  placeholder="e.g. 29ABCDE1234F1Z5"
+                  className="w-full bg-brand-off-white border border-brand-border px-3 py-2.5 text-xs font-mono uppercase focus:outline-none focus:border-brand-black"
+                />
+              </div>
+            </div>
+
+            {/* 4. Payment Method */}
             <div className="bg-white border border-brand-border p-6 sm:p-8 space-y-4">
               <div className="flex items-center justify-between border-b border-brand-border pb-3">
                 <h2 className="text-xs font-mono uppercase tracking-[0.16em] font-semibold text-brand-black">
-                  3. Payment Method
+                  4. Payment Method
                 </h2>
                 <span className="text-[10px] font-mono uppercase text-brand-mocha">
                   {isRazorpayConfigured ? 'Razorpay Secured' : 'Demo Mode'}
@@ -666,7 +902,7 @@ export const Checkout: React.FC = () => {
               <p className="text-[11px] text-brand-secondary-text leading-relaxed">
                 {paymentMethod === 'cod'
                   ? 'Pay in cash or UPI upon doorstep delivery.'
-                  : 'You will complete payment securely in the Razorpay modal using UPI QR, GPay, PhonePe, Card, or Net Banking.'}
+                  : 'Complete payment securely inside the Razorpay popup using UPI QR, GPay, PhonePe, Paytm, Card, or Net Banking.'}
               </p>
             </div>
 
@@ -688,10 +924,10 @@ export const Checkout: React.FC = () => {
             </button>
           </form>
 
-          {/* Order Summary Sidebar */}
+          {/* Order Summary & Tax Breakdown */}
           <div className="lg:col-span-5 bg-white border border-brand-border p-6 sm:p-8 space-y-6 sticky top-24">
             <div className="flex justify-between items-center border-b border-brand-border pb-3">
-              <h2 className="font-display text-xl font-semibold text-brand-black">Order Summary</h2>
+              <h2 className="font-display text-xl font-semibold text-brand-black">Billing Summary</h2>
               <Link to="/cart" className="text-[11px] uppercase tracking-[0.14em] text-brand-mocha hover:underline">
                 Edit Bag
               </Link>
@@ -718,7 +954,7 @@ export const Checkout: React.FC = () => {
 
             <div className="space-y-2 text-xs text-brand-secondary-text border-t border-brand-border pt-4">
               <div className="flex justify-between">
-                <span>Subtotal</span>
+                <span>Subtotal (incl. taxes)</span>
                 <span className="font-medium text-brand-black">{formatPrice(subtotal)}</span>
               </div>
               {discount > 0 && (
@@ -730,6 +966,14 @@ export const Checkout: React.FC = () => {
               <div className="flex justify-between">
                 <span>Shipping</span>
                 <span>{shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}</span>
+              </div>
+              <div className="flex justify-between text-[11px] pt-1 border-t border-dashed border-brand-border">
+                <span>Taxable Value</span>
+                <span>₹{taxableAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-[11px]">
+                <span>Estimated GST ({gstRatePercent}% incl.)</span>
+                <span>₹{taxAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between pt-3 border-t border-brand-border text-base font-semibold text-brand-black">
                 <span>{isRazorpayConfigured ? 'Total Payable' : 'Total (Demo)'}</span>

@@ -8,14 +8,20 @@ export default {
     extend: {
       colors: {
         brand: {
-          black: "#171717",
-          ivory: "#EDE6D9",
-          "off-white": "#F7F5F0",
-          mocha: "#92785F",
-          sand: "#B8A58C",
-          "secondary-text": "#77736C",
-          border: "#E4DEC3",
-          light: "#FAF8F5",
+          black: "#122320",
+          forest: "#173B35",
+          oxblood: "#702B3A",
+          copper: "#A85F3D",
+          gold: "#C19A55",
+          midnight: "#263B5A",
+          tobacco: "#C69B78",
+          ivory: "#EFE9DD",
+          "off-white": "#F7F3EB",
+          mocha: "#A85F3D",
+          sand: "#C69B78",
+          "secondary-text": "#5E5A52",
+          border: "#DDD4C3",
+          light: "#FAF7F2",
         }
       },
       fontFamily: {
